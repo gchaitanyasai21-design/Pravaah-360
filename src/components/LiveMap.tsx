@@ -25,37 +25,45 @@ const Popup = dynamic(
   { ssr: false }
 );
 
-import L from "leaflet";
 import type { Ambulance, Emergency, TrafficJunction, Hospital } from "@/types";
 
-// Fix for default Leaflet marker icons in Next.js
-const ambulanceIcon = L.divIcon({
-  html: `<div style="background-color: #E53935; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-  className: "ambulance-marker",
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-});
+// Dynamic import to avoid SSR issues
+const L = dynamic(() => import("leaflet"), { ssr: false });
 
-const emergencyIcon = L.divIcon({
-  html: `<div style="background-color: #FF5722; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); animation: pulse 1s infinite;"></div>`,
-  className: "emergency-marker",
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-});
+// Create icons after component mounts
+const createIcons = async () => {
+  const leaflet = await import("leaflet");
+  
+  const ambulanceIcon = leaflet.divIcon({
+    html: `<div style="background-color: #E53935; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+    className: "ambulance-marker",
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
 
-const hospitalIcon = L.divIcon({
-  html: `<div style="background-color: #1565C0; width: 18px; height: 18px; border-radius: 3px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-  className: "hospital-marker",
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
-});
+  const emergencyIcon = leaflet.divIcon({
+    html: `<div style="background-color: #FF5722; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); animation: pulse 1s infinite;"></div>`,
+    className: "emergency-marker",
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
 
-const junctionNormalIcon = L.divIcon({
-  html: `<div style="background-color: #2E7D32; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white;"></div>`,
-  className: "junction-marker",
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-});
+  const hospitalIcon = leaflet.divIcon({
+    html: `<div style="background-color: #4CAF50; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+    className: "hospital-marker",
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  });
+
+  const junctionIcon = leaflet.divIcon({
+    html: `<div style="background-color: #2196F3; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+    className: "junction-marker",
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
+
+  return { ambulanceIcon, emergencyIcon, hospitalIcon, junctionIcon };
+};
 
 const junctionPreemptedIcon = L.divIcon({
   html: `<div style="background-color: #4CAF50; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px #4CAF50;"></div>`,

@@ -1,5 +1,5 @@
-// PRAVAH + LifeLane - Driver View (Ambulance Navigation)
-// Navigation dashboard with signal status
+// PRAVAH + LifeLane - Driver View (Service Provider Interface)
+// Request management for drivers - no traffic control access
 
 "use client";
 
@@ -13,21 +13,62 @@ import {
   AlertTriangle,
   MapPin,
   Clock,
+  Package,
+  Users,
+  Heart,
+  Shield,
 } from "lucide-react";
-import LiveMap from "@/components/LiveMap";
+import LiveMap from "@/components/LiveMapSimple";
+import BackToLogin from "@/components/BackToLogin";
 import { useApp } from "@/store/AppContext";
+import { useAuth } from "@/store/AuthContext";
 import type { Emergency, Ambulance } from "@/types";
+import type { UserRole } from "@/types/roles";
 
 export default function DriverView() {
   const { ambulances, emergencies, junctions, assignAmbulance, updateEmergencyStatus } =
     useApp();
+  const { user } = useAuth();
 
   const availableAmbulance = ambulances.find((a) => a.status === "available");
   const [currentAmbulance, setCurrentAmbulance] = useState<Ambulance | null>(
     availableAmbulance || null
   );
 
+  // Filter requests based on driver role
   const pendingEmergencies = emergencies.filter((e) => e.status === "pending");
+  const activeRequests = emergencies.filter((e) => e.assignedAmbulanceId === currentAmbulance?.id);
+
+  // Get service type based on user role
+  const getServiceType = () => {
+    switch (user?.role) {
+      case 'driver': return 'Emergency Services';
+      case 'parcel_user': return 'Parcel Delivery';
+      case 'women_safety': return 'Safety Response';
+      case 'elderly_user': return 'Elderly Assistance';
+      default: return 'Service Provider';
+    }
+  };
+
+  const getServiceIcon = () => {
+    switch (user?.role) {
+      case 'driver': return Shield;
+      case 'parcel_user': return Package;
+      case 'women_safety': return Shield;
+      case 'elderly_user': return Heart;
+      default: return Package;
+    }
+  };
+
+  const getServiceColor = () => {
+    switch (user?.role) {
+      case 'driver': return 'from-red-500 to-pink-500';
+      case 'parcel_user': return 'from-blue-500 to-cyan-500';
+      case 'women_safety': return 'from-pink-500 to-rose-500';
+      case 'elderly_user': return 'from-green-500 to-teal-500';
+      default: return 'from-gray-500 to-slate-500';
+    }
+  };
   const activeEmergency = emergencies.find(
     (e) => e.assignedAmbulanceId === currentAmbulance?.id && e.status !== "completed"
   );
@@ -95,14 +136,17 @@ export default function DriverView() {
       {/* Header */}
       <header className="bg-gray-800 p-4 shadow-lg">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Navigation className="w-6 h-6 text-green-500" />
-              Driver Dashboard
-            </h1>
-            <p className="text-gray-400 text-sm">
-              {currentAmbulance?.vehicleNumber || "Select a vehicle"}
-            </p>
+          <div className="flex items-center gap-4">
+            <BackToLogin />
+            <div>
+              <h1 className="text-xl font-bold flex items-center gap-2">
+                <Navigation className="w-6 h-6 text-green-500" />
+                Driver Dashboard
+              </h1>
+              <p className="text-gray-400 text-sm">
+                {currentAmbulance?.vehicleNumber || "Select a vehicle"}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             {currentAmbulance && (

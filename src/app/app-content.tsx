@@ -1,44 +1,84 @@
-// PRAVAH + LifeLane - Main App Content
-// Role-based view router
+// PRAVAH + LifeLane - Main Application Content
+// Role-based routing and view rendering with authentication
+
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Ambulance, ClipboardList, TrafficCone, Play, Pause, Gauge } from "lucide-react";
-import { AppProvider, useApp } from "@/store/AppContext";
+import { User, Play, Pause, Gauge, LogOut, Truck, Shield, Heart, Users, Activity, Package } from "lucide-react";
+import { useApp } from "@/store/AppContext";
+import { useAuth, AuthProvider } from "@/store/AuthContext";
+import { AppProvider } from "@/store/AppContext";
 import PatientView from "@/views/PatientView";
 import DriverView from "@/views/DriverView";
 import DispatchView from "@/views/DispatchView";
 import TrafficView from "@/views/TrafficView";
+import WomenSafetyView from "@/views/WomenSafetyView";
+import ParentalView from "@/views/ParentalView";
+import ElderlyView from "@/views/ElderlyView";
+import ParcelView from "@/views/ParcelView";
 import type { UserRole } from "@/types";
+import type { UserProfile, UserPermissions } from "@/types/roles";
 
 function RoleSelector() {
   const { setRole, currentUser } = useApp();
 
-  const roles: { role: UserRole; label: string; icon: React.ReactNode; color: string }[] = [
+  const services = [
     {
-      role: "patient",
-      label: "Patient",
-      icon: <User className="w-6 h-6" />,
+      id: "emergency",
+      role: "patient" as UserRole,
+      label: "Emergency Services",
+      icon: <Shield className="w-6 h-6" />,
       color: "bg-red-500",
     },
     {
-      role: "driver",
-      label: "Driver",
-      icon: <Ambulance className="w-6 h-6" />,
+      id: "driver",
+      role: "driver" as UserRole,
+      label: "Service Provider",
+      icon: <Truck className="w-6 h-6" />,
+      color: "bg-yellow-500",
+    },
+    {
+      id: "dispatch",
+      role: "dispatch" as UserRole,
+      label: "Dispatch Control",
+      icon: <Activity className="w-6 h-6" />,
       color: "bg-blue-500",
     },
     {
-      role: "dispatch",
-      label: "Dispatch",
-      icon: <ClipboardList className="w-6 h-6" />,
-      color: "bg-purple-500",
+      id: "traffic",
+      role: "traffic" as UserRole,
+      label: "Traffic Control",
+      icon: <Users className="w-6 h-6" />,
+      color: "bg-green-500",
     },
     {
-      role: "traffic",
-      label: "Traffic Control",
-      icon: <TrafficCone className="w-6 h-6" />,
-      color: "bg-yellow-500",
+      id: "womensafety",
+      role: "patient" as UserRole,
+      label: "Women Safety",
+      icon: <Shield className="w-6 h-6" />,
+      color: "bg-pink-500",
+    },
+    {
+      id: "parent",
+      role: "patient" as UserRole,
+      label: "Parental Monitoring",
+      icon: <Users className="w-6 h-6" />,
+      color: "bg-indigo-500",
+    },
+    {
+      id: "eldercare",
+      role: "patient" as UserRole,
+      label: "Elderly Care",
+      icon: <Heart className="w-6 h-6" />,
+      color: "bg-teal-500",
+    },
+    {
+      id: "parcel",
+      role: "patient" as UserRole,
+      label: "Parcel Delivery",
+      icon: <Package className="w-6 h-6" />,
+      color: "bg-blue-500",
     },
   ];
 
@@ -58,17 +98,25 @@ function RoleSelector() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {roles.map((item) => (
+        <div className="grid grid-cols-2 gap-4">
+          {services.map((service) => (
             <motion.button
-              key={item.role}
+              key={service.id}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setRole(item.role)}
-              className={`${item.color} text-white p-6 rounded-xl shadow-lg flex flex-col items-center gap-3 transition-colors hover:opacity-90`}
+              onClick={() => {
+                setRole(service.role);
+                // Redirect to service-specific URL
+                window.location.href = `/?service=${service.id}`;
+              }}
+              className={`p-6 rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all cursor-pointer ${service.color} text-white`}
             >
-              {item.icon}
-              <span className="font-medium">{item.label}</span>
+              <div className="flex flex-col items-center gap-3">
+                {service.icon}
+                <div>
+                  <div className="font-bold text-lg">{service.label}</div>
+                </div>
+              </div>
             </motion.button>
           ))}
         </div>
@@ -84,23 +132,45 @@ function RoleSelector() {
 function MainContent() {
   const { currentUser, setRole, isSimulationRunning, toggleSimulation, simulationSpeed, setSimulationSpeed } =
     useApp();
+  const { user } = useAuth();
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const selectedService = searchParams?.get('service') || 'emergency';
 
-  const [showRoleSelector, setShowRoleSelector] = useState(false);
-
-  if (!currentUser || showRoleSelector) {
+  if (!currentUser) {
     return <RoleSelector />;
   }
 
   const renderView = () => {
-    switch (currentUser.role) {
+    // Route based on selected service from login
+    switch (selectedService) {
+      case "emergency":
       case "patient":
         return <PatientView />;
       case "driver":
         return <DriverView />;
       case "dispatch":
+      case "dispatcher":
         return <DispatchView />;
       case "traffic":
+      case "traffic_control":
         return <TrafficView />;
+      case "womensafety":
+        return <WomenSafetyView />;
+      case "parent":
+      case "parental":
+        return <ParentalView />;
+      case "eldercare":
+        return <ElderlyView />;
+      case "parcel":
+        return <ParcelView />;
+      case "child":
+        return <ParentalView />; // Child uses similar interface
+      case "admin":
+        return <DispatchView />; // Admin gets dispatch view
+      case "fleet":
+        return <DriverView />; // Fleet manager gets driver view
+      case "ai":
+        return <DispatchView />; // AI analyst gets dispatch view
       default:
         return <PatientView />;
     }

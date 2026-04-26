@@ -5,70 +5,116 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Lock, Mail, ArrowRight, Shield, Truck, Heart, MapPin, Brain } from "lucide-react";
+import { User, Lock, Mail, ArrowRight, Shield, Truck, Heart, MapPin, Brain, Users, AlertTriangle, Phone, Eye, EyeOff, ChevronRight } from "lucide-react";
+import LiveMap from "@/components/LiveMapSimple";
 import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selectedService, setSelectedService] = useState("emergency");
+  const [selectedService, setSelectedService] = useState("patient");
+  const [isAbove18, setIsAbove18] = useState(false);
+  const [childName, setChildName] = useState("");
+  const [parentName, setParentName] = useState("");
+  const [parentPhone, setParentPhone] = useState("");
+  const [bloodGroup, setBloodGroup] = useState("");
+  const [showAdditionalFields, setShowAdditionalFields] = useState(false);
 
   const services = [
     {
-      id: "emergency",
-      name: "Emergency Response",
+      id: "patient",
+      name: "Emergency Services",
       icon: Shield,
       color: "from-red-500 to-pink-500",
-      description: "Ambulance dispatch & green corridor"
+      description: "Medical emergency assistance",
+      role: "patient" as const
     },
     {
       id: "parcel",
-      name: "Parcel Service",
+      name: "Parcel Delivery",
       icon: Truck,
       color: "from-blue-500 to-cyan-500",
-      description: "Smart delivery & tracking"
-    },
-    {
-      id: "parental",
-      name: "Parental Tracking",
-      icon: MapPin,
-      color: "from-purple-500 to-indigo-500",
-      description: "Family safety & location tracking"
-    },
-    {
-      id: "eldercare",
-      name: "Elder Care",
-      icon: Heart,
-      color: "from-green-500 to-teal-500",
-      description: "Senior citizen monitoring"
+      description: "Send & receive packages",
+      role: "parcel_user" as const
     },
     {
       id: "womensafety",
       name: "Women Safety",
       icon: Shield,
       color: "from-pink-500 to-rose-500",
-      description: "Personal safety & alerts"
+      description: "Personal safety & location tracking",
+      role: "women_safety" as const
     },
     {
-      id: "fleet",
-      name: "Fleet Management",
+      id: "child",
+      name: "Child Safety",
+      icon: MapPin,
+      color: "from-purple-500 to-indigo-500",
+      description: "Child monitoring & safety",
+      role: "child_user" as const,
+      requiresAgeVerification: true
+    },
+    {
+      id: "parent",
+      name: "Parental Monitoring",
+      icon: MapPin,
+      color: "from-indigo-500 to-purple-500",
+      description: "Track your children's location",
+      role: "parent_user" as const
+    },
+    {
+      id: "eldercare",
+      name: "Elderly Care",
+      icon: Heart,
+      color: "from-green-500 to-teal-500",
+      description: "Senior citizen monitoring",
+      role: "elderly_user" as const
+    },
+    {
+      id: "driver",
+      name: "Service Provider",
       icon: Truck,
       color: "from-orange-500 to-amber-500",
-      description: "Vehicle fleet operations"
+      description: "Driver & delivery partner",
+      role: "driver" as const
     },
     {
-      id: "ai",
-      name: "AI Predictions",
-      icon: Brain,
-      color: "from-violet-500 to-purple-500",
-      description: "Predictive analytics & insights"
+      id: "admin",
+      name: "System Admin",
+      icon: Shield,
+      color: "from-gray-500 to-slate-500",
+      description: "Full system control",
+      role: "admin" as const,
+      requiresAdmin: true
     }
   ];
 
+  const handleServiceChange = (serviceId: string) => {
+    setSelectedService(serviceId);
+    const service = services.find(s => s.id === serviceId);
+    setShowAdditionalFields(service?.requiresAgeVerification || false);
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Redirect to main app with selected service
-    window.location.href = `/?service=${selectedService}`;
+    
+    // Store additional data for child users
+    if (showAdditionalFields) {
+      localStorage.setItem('childProfile', JSON.stringify({
+        isAbove18,
+        childName,
+        parentName,
+        parentPhone,
+        bloodGroup
+      }));
+    }
+    
+    // Store login info
+    localStorage.setItem('userEmail', email);
+    localStorage.setItem('selectedService', selectedService);
+    
+    // Redirect to service-specific page
+    window.location.href = `/${selectedService}`;
   };
 
   return (
@@ -84,12 +130,21 @@ export default function LoginPage() {
 
       <div className="relative z-10 flex min-h-screen">
         {/* Service Selection */}
-        <div className="w-1/2 p-8 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center p-8 relative">
+          {/* Background Map */}
+          <div className="absolute inset-0 opacity-10">
+            <LiveMap
+              ambulances={[]}
+              emergencies={[]}
+              center={[28.6139, 77.2090]}
+              zoom={10}
+            />
+          </div>
+          
           <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="max-w-md w-full"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-md relative z-10"
           >
             <h1 className="text-4xl font-bold text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
               PRAVAH + LifeLane
@@ -105,7 +160,7 @@ export default function LoginPage() {
                   key={service.id}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedService(service.id)}
+                  onClick={() => handleServiceChange(service.id)}
                   className={`w-full p-4 rounded-xl border-2 transition-all ${
                     selectedService === service.id
                       ? "border-white bg-white/10"
@@ -173,6 +228,105 @@ export default function LoginPage() {
                   </div>
                 </div>
 
+                {/* Additional fields for child users */}
+                {showAdditionalFields && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="space-y-4 border-t border-white/20 pt-4"
+                  >
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Are you above 18 years old?
+                      </label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            checked={isAbove18}
+                            onChange={() => setIsAbove18(true)}
+                            className="mr-2"
+                          />
+                          <span className="text-white">Yes (18+)</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            checked={!isAbove18}
+                            onChange={() => setIsAbove18(false)}
+                            className="mr-2"
+                          />
+                          <span className="text-white">No (Below 18)</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Child Name
+                      </label>
+                      <input
+                        type="text"
+                        value={childName}
+                        onChange={(e) => setChildName(e.target.value)}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Enter child's name"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Parent/Guardian Name
+                      </label>
+                      <input
+                        type="text"
+                        value={parentName}
+                        onChange={(e) => setParentName(e.target.value)}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Enter parent's name"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Parent Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={parentPhone}
+                        onChange={(e) => setParentPhone(e.target.value)}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Enter parent's phone number"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Blood Group
+                      </label>
+                      <select
+                        value={bloodGroup}
+                        onChange={(e) => setBloodGroup(e.target.value)}
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        required
+                      >
+                        <option value="" className="text-gray-800">Select blood group</option>
+                        <option value="A+" className="text-gray-800">A+</option>
+                        <option value="A-" className="text-gray-800">A-</option>
+                        <option value="B+" className="text-gray-800">B+</option>
+                        <option value="B-" className="text-gray-800">B-</option>
+                        <option value="AB+" className="text-gray-800">AB+</option>
+                        <option value="AB-" className="text-gray-800">AB-</option>
+                        <option value="O+" className="text-gray-800">O+</option>
+                        <option value="O-" className="text-gray-800">O-</option>
+                      </select>
+                    </div>
+                  </motion.div>
+                )}
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -187,12 +341,31 @@ export default function LoginPage() {
               </form>
 
               <div className="mt-6 text-center">
-                <p className="text-gray-400 text-sm">
-                  Don't have an account?{" "}
-                  <Link href="/signup" className="text-purple-400 hover:text-purple-300 font-medium">
-                    Sign up
-                  </Link>
+                <p className="text-gray-400 text-sm mb-3">
+                  Or use direct access:
                 </p>
+                <div className="space-y-2 text-xs">
+                  <div className="text-purple-300">
+                    Women Safety: <span className="text-white">safety@parvah.com / safety123</span>
+                  </div>
+                  <div className="text-purple-300">
+                    Parental: <span className="text-white">parent@parvah.com / parent123</span>
+                  </div>
+                  <div className="text-purple-300">
+                    Elderly Care: <span className="text-white">elderly@parvah.com / elderly123</span>
+                  </div>
+                  <div className="text-purple-300">
+                    Parcel: <span className="text-white">user@parvah.com / user123</span>
+                  </div>
+                  <div className="text-purple-300">
+                    Emergency: <span className="text-white">patient@parvah.com / patient123</span>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-600">
+                  <p className="text-gray-400 text-sm">
+                    Or visit: <span className="text-purple-400">/womensafety</span>, <span className="text-purple-400">/parent</span>, <span className="text-purple-400">/eldercare</span>, <span className="text-purple-400">/parcel</span>, <span className="text-purple-400">/emergency</span>
+                  </p>
+                </div>
               </div>
             </div>
           </motion.div>

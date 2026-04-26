@@ -6,8 +6,10 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Ambulance, Phone, MapPin, Clock, Share2, AlertCircle } from "lucide-react";
-import LiveMap from "@/components/LiveMap";
+import LiveMap from "@/components/LiveMapSimple";
+import BackToLogin from "@/components/BackToLogin";
 import { useApp } from "@/store/AppContext";
+import { useAuth } from "@/store/AuthContext";
 import type { EmergencyType } from "@/types";
 
 const emergencyTypes: { type: EmergencyType; label: string; icon: string }[] = [
@@ -79,14 +81,19 @@ export default function PatientView() {
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
       <header className="bg-red-600 text-white p-4 shadow-lg">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <AlertCircle className="w-6 h-6" />
-            LifeLane Emergency
-          </h1>
-          <p className="text-red-100 text-sm mt-1">
-            Quick emergency response with green corridor
-          </p>
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <BackToLogin />
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <AlertCircle className="w-6 h-6" />
+                LifeLane Emergency
+              </h1>
+              <p className="text-red-100 text-sm mt-1">
+                Quick emergency response with green corridor
+              </p>
+            </div>
+          </div>
         </div>
       </header>
 

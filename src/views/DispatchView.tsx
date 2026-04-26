@@ -15,8 +15,10 @@ import {
   CheckCircle,
   TrendingUp,
 } from "lucide-react";
-import LiveMap from "@/components/LiveMap";
+import LiveMap from "@/components/LiveMapSimple";
+import BackToLogin from "@/components/BackToLogin";
 import { useApp } from "@/store/AppContext";
+import { useAuth } from "@/store/AuthContext";
 import type { Emergency, Ambulance } from "@/types";
 
 export default function DispatchView() {
@@ -71,14 +73,17 @@ export default function DispatchView() {
       <header className="bg-gray-900 text-white p-4 shadow-lg">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Activity className="w-7 h-7 text-green-500" />
-                Dispatch Command Center
-              </h1>
-              <p className="text-gray-400 text-sm mt-1">
-                Real-time emergency response coordination
-              </p>
+            <div className="flex items-center gap-4">
+              <BackToLogin />
+              <div>
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                  <Activity className="w-7 h-7 text-green-500" />
+                  Dispatch Command Center
+                </h1>
+                <p className="text-gray-400 text-sm mt-1">
+                  Real-time emergency response coordination
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-6">
               <div className="text-center">
