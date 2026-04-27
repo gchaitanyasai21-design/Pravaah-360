@@ -142,7 +142,28 @@ function AdminPageContent() {
             
             <div className="h-full min-h-[500px] rounded-lg overflow-hidden">
               <LiveMap
-                ambulances={[]}
+                ambulances={[
+                  { id: "AMB-001", lat: 28.6140, lng: 77.2091, status: "Available" },
+                  { id: "AMB-002", lat: 28.6138, lng: 77.2089, status: "On Duty" },
+                  { id: "AMB-003", lat: 28.6142, lng: 77.2093, status: "Available" },
+                  { id: "AMB-004", lat: 28.6135, lng: 77.2085, status: "Available" },
+                  { id: "AMB-005", lat: 28.6145, lng: 77.2095, status: "On Duty" }
+                ]}
+                deliveryVehicles={[
+                  { id: "DEL-001", lat: 28.6132, lng: 77.2082, status: "In Transit" },
+                  { id: "DEL-002", lat: 28.6148, lng: 77.2098, status: "Delivered" },
+                  { id: "DEL-003", lat: 28.6130, lng: 77.2080, status: "In Transit" }
+                ]}
+                trafficSignals={[
+                  { id: "TS-001", lat: 28.6139, lng: 77.2090, name: "Connaught Place", status: "Normal" },
+                  { id: "TS-002", lat: 28.6141, lng: 77.2092, name: "India Gate", status: "Busy" },
+                  { id: "TS-003", lat: 28.6137, lng: 77.2088, name: "Parliament Street", status: "Normal" },
+                  { id: "TS-004", lat: 28.6143, lng: 77.2094, name: "Janpath", status: "Congested" }
+                ]}
+                sosVehicles={[
+                  { id: "POL-001", lat: 28.6135, lng: 77.2085, type: "police" },
+                  { id: "POL-002", lat: 28.6147, lng: 77.2097, type: "police" }
+                ]}
                 emergencies={[]}
                 center={[currentLocation.lat, currentLocation.lng]}
                 zoom={12}

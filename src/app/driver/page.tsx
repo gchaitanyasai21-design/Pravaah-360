@@ -170,7 +170,20 @@ function DriverPageContent() {
             
             <div className="h-full min-h-[500px] rounded-lg overflow-hidden">
               <LiveMap
-                ambulances={[]}
+                ambulances={[
+                  { id: "AMB-001", lat: 28.6140, lng: 77.2091, status: "Available" },
+                  { id: "AMB-002", lat: 28.6138, lng: 77.2089, status: "On Duty" },
+                  { id: "AMB-003", lat: 28.6142, lng: 77.2093, status: "Available" }
+                ]}
+                trafficSignals={[
+                  { id: "TS-001", lat: 28.6139, lng: 77.2090, name: "Connaught Place", status: "Normal" },
+                  { id: "TS-002", lat: 28.6141, lng: 77.2092, name: "India Gate", status: "Busy" }
+                ]}
+                sosVehicles={[
+                  { id: "POL-001", lat: 28.6135, lng: 77.2085, type: "police" }
+                ]}
+                userLocation={currentLocation}
+                showUserLocation={true}
                 emergencies={[]}
                 center={[currentLocation.lat, currentLocation.lng]}
                 zoom={12}

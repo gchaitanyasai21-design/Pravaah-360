@@ -16,6 +16,11 @@ interface LiveMapProps {
   ambulances?: any[];
   emergencies?: any[];
   hospitals?: any[];
+  deliveryVehicles?: any[];
+  trafficSignals?: any[];
+  sosVehicles?: any[];
+  userLocation?: { lat: number; lng: number };
+  showUserLocation?: boolean;
   center?: [number, number];
   zoom?: number;
   showControls?: boolean;

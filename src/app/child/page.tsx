@@ -154,7 +154,16 @@ function ChildPageContent() {
             
             <div className="h-full min-h-[400px] rounded-lg overflow-hidden">
               <LiveMap
-                ambulances={[]}
+                ambulances={[
+                  { id: "AMB-001", lat: 28.6140, lng: 77.2091, status: "Available" },
+                  { id: "AMB-002", lat: 28.6138, lng: 77.2089, status: "On Duty" }
+                ]}
+                sosVehicles={[
+                  { id: "POL-001", lat: 28.6135, lng: 77.2085, type: "police" },
+                  { id: "POL-002", lat: 28.6147, lng: 77.2097, type: "police" }
+                ]}
+                userLocation={currentLocation}
+                showUserLocation={true}
                 emergencies={[]}
                 center={currentLocation ? [currentLocation.lat, currentLocation.lng] : [28.6139, 77.2090]}
                 zoom={15}

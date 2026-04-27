@@ -169,7 +169,17 @@ function EmergencyPageContent() {
             
             <div className="h-full min-h-[500px] rounded-lg overflow-hidden">
               <LiveMap
-                ambulances={[]}
+                ambulances={[
+                  { id: "AMB-001", lat: 28.6140, lng: 77.2091, status: "Available" },
+                  { id: "AMB-002", lat: 28.6138, lng: 77.2089, status: "On Duty" },
+                  { id: "AMB-003", lat: 28.6142, lng: 77.2093, status: "Available" }
+                ]}
+                sosVehicles={[
+                  { id: "POL-001", lat: 28.6135, lng: 77.2085, type: "police" },
+                  { id: "AMB-004", lat: 28.6145, lng: 77.2095, type: "ambulance" }
+                ]}
+                userLocation={currentLocation}
+                showUserLocation={true}
                 emergencies={[]}
                 center={currentLocation ? [currentLocation.lat, currentLocation.lng] : [28.6139, 77.2090]}
                 zoom={15}
