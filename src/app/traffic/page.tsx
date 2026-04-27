@@ -1,7 +1,7 @@
+"use client";
+
 // PRAVAH + LifeLane - Traffic Control Direct Page
 // Direct access to traffic control features
-
-"use client";
 
 import { useEffect } from "react";
 import { useAuth } from "@/store/AuthContext";

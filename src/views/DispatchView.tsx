@@ -274,9 +274,6 @@ export default function DispatchView() {
             hospitals={hospitals}
             center={[28.6139, 77.2090]}
             zoom={12}
-            onMarkerClick={(type, id) => {
-              console.log(`Clicked ${type}: ${id}`);
-            }}
           />
         </div>
       </div>

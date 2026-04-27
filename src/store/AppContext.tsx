@@ -522,7 +522,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 } else if (amb.status === "to-hospital") {
                   // Update emergency status to completed and make ambulance available
                   updateEmergencyStatus(assignedEmergency.id, "completed");
-                  newStatus = "available"; // Reached hospital, become available
+                  newStatus = "en-route"; // Available for new assignments
                 }
               }
 

@@ -1,12 +1,18 @@
 // PRAVAH + LifeLane - Ambulance API Routes
 import { NextRequest, NextResponse } from "next/server";
-import { getAllAmbulances, getAmbulanceById, updateAmbulanceStatus } from "@/db/access";
+import { supabase } from "@/lib/supabase";
 import type { ApiResponse } from "@/types";
 
 // GET /api/ambulances - Get all ambulances
 export async function GET() {
   try {
-    const ambulances = await getAllAmbulances();
+    const { data: ambulances, error } = await supabase
+      .from('ambulances')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
     return NextResponse.json<ApiResponse<typeof ambulances>>({
       success: true,
       data: ambulances,
@@ -41,16 +47,33 @@ export async function PATCH(request: NextRequest) {
 
     // Update status if provided
     if (status) {
-      await updateAmbulanceStatus(id, status);
+      const { data, error } = await supabase
+        .from('ambulances')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      return NextResponse.json<ApiResponse<typeof data>>({
+        success: true,
+        data,
+      });
     }
 
-    // For location updates, we'd call updateAmbulanceLocation
-    // This is a simplified version
-    const ambulance = await getAmbulanceById(id);
+    // For location updates, get current ambulance data
+    const { data: ambulance, error } = await supabase
+      .from('ambulances')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
 
     return NextResponse.json<ApiResponse<typeof ambulance>>({
       success: true,
-      data: ambulance || undefined,
+      data: ambulance,
       message: "Ambulance updated successfully",
     });
   } catch (error) {
