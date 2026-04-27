@@ -8,11 +8,13 @@ import { motion } from "framer-motion";
 import { User, Lock, Mail, ArrowRight, Shield, Truck, Heart, MapPin, Brain, Users, AlertTriangle, Phone, Eye, EyeOff, ChevronRight } from "lucide-react";
 import LiveMap from "@/components/LiveMapSimple";
 import Link from "next/link";
+import { useAuth } from "@/store/AuthContext";
 
 export default function LoginPage() {
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selectedService, setSelectedService] = useState("patient");
+  const [selectedService, setSelectedService] = useState("emergency");
   const [isAbove18, setIsAbove18] = useState(false);
   const [childName, setChildName] = useState("");
   const [parentName, setParentName] = useState("");
@@ -22,7 +24,7 @@ export default function LoginPage() {
 
   const services = [
     {
-      id: "patient",
+      id: "emergency",
       name: "Emergency Services",
       icon: Shield,
       color: "from-red-500 to-pink-500",
@@ -95,7 +97,7 @@ export default function LoginPage() {
     setShowAdditionalFields(service?.requiresAgeVerification || false);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Store additional data for child users
@@ -109,12 +111,41 @@ export default function LoginPage() {
       }));
     }
     
-    // Store login info
-    localStorage.setItem('userEmail', email);
-    localStorage.setItem('selectedService', selectedService);
+    // Map service ID to user role
+    const roleMap: Record<string, string> = {
+      'emergency': 'patient',
+      'admin': 'admin',
+      'driver': 'driver',
+      'dispatch': 'dispatch',
+      'traffic': 'traffic',
+      'child': 'child_user',
+      'parent': 'parent_user',
+      'eldercare': 'elderly_user',
+      'womensafety': 'women_safety',
+      'parcel': 'parcel_user'
+    };
     
-    // Redirect to service-specific page
-    window.location.href = `/${selectedService}`;
+    const userRole = roleMap[selectedService] || 'patient';
+    
+    try {
+      // Use AuthContext login
+      const loginSuccess = await login(email, password, userRole as any);
+      
+      if (loginSuccess) {
+        // Store login info
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('selectedService', selectedService);
+        
+        // Redirect to service-specific page
+        window.location.href = `/${selectedService}`;
+      } else {
+        // Show error message
+        alert('Login failed. Please check your credentials and try again.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Login failed. Please try again.');
+    }
   };
 
   return (

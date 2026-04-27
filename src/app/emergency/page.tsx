@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/store/AuthContext";
 import { AppProvider } from "@/store/AppContext";
 import { AlertTriangle, MapPin, Phone, Clock, Activity } from "lucide-react";
-import LiveMap from "@/components/LiveMapSimple";
+import LiveMap from "@/components/LiveMap";
 
 function EmergencyPageContent() {
   const { login, user } = useAuth();
