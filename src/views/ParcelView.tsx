@@ -16,7 +16,7 @@ import {
   Plus,
   Search,
 } from "lucide-react";
-import LiveMap from "@/components/LiveMapSimple";
+import LiveMap from "@/components/LiveMap";
 import BackToLogin from "@/components/BackToLogin";
 import { useApp } from "@/store/AppContext";
 import { useAuth } from "@/store/AuthContext";

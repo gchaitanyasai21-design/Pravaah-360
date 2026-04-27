@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/store/AuthContext";
 import { AppProvider } from "@/store/AppContext";
-import LiveMap from "@/components/LiveMapSimple";
+import LiveMap from "@/components/LiveMap";
 
 function ChildPageContent() {
   const { login } = useAuth();

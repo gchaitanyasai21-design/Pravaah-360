@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/store/AuthContext";
 import { AppProvider } from "@/store/AppContext";
 import { Activity, Users, AlertCircle, MapPin, Clock, Phone, CheckCircle, TrendingUp } from "lucide-react";
-import LiveMap from "@/components/LiveMapSimple";
+import LiveMap from "@/components/LiveMap";
 
 function AdminPageContent() {
   const { login } = useAuth();

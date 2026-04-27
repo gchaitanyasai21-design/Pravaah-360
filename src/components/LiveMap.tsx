@@ -15,8 +15,10 @@ interface LiveMapProps {
   junctions?: any[];
   ambulances?: any[];
   emergencies?: any[];
+  hospitals?: any[];
   center?: [number, number];
   zoom?: number;
+  showControls?: boolean;
 }
 
 export default function LiveMap(props: LiveMapProps) {

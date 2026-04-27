@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Ambulance, Phone, MapPin, Clock, Share2, AlertCircle } from "lucide-react";
-import LiveMap from "@/components/LiveMapSimple";
+import LiveMap from "@/components/LiveMap";
 import BackToLogin from "@/components/BackToLogin";
 import { useApp } from "@/store/AppContext";
 import { useAuth } from "@/store/AuthContext";

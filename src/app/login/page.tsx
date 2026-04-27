@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { User, Lock, Mail, ArrowRight, Shield, Truck, Heart, MapPin, Brain, Users, AlertTriangle, Phone, Eye, EyeOff, ChevronRight } from "lucide-react";
-import LiveMap from "@/components/LiveMapSimple";
+import LiveMap from "@/components/LiveMap";
 import Link from "next/link";
 import { useAuth } from "@/store/AuthContext";
 

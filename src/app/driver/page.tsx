@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/store/AuthContext";
 import { AppProvider } from "@/store/AppContext";
 import { Navigation, MapPin, Phone, CheckCircle, Clock, AlertTriangle, Package } from "lucide-react";
-import LiveMap from "@/components/LiveMapSimple";
+import LiveMap from "@/components/LiveMap";
 
 function DriverPageContent() {
   const { login } = useAuth();
