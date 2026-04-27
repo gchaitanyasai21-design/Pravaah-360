@@ -18,6 +18,43 @@ function DriverPageContent() {
     login("driver@parvah.com", "driver123", "driver");
   }, [login]);
 
+  // Driver action handlers
+  const markAvailable = () => {
+    alert("Status Updated: Available\n• Vehicle: DL-01-AB-1234\n• Location: Connaught Place\n• Ready for emergency dispatch");
+  };
+
+  const contactHospital = () => {
+    const hospitals = `
+      Nearby Hospitals:
+      🏥 AIIMS Delhi: +91-11-26588500
+      🏥 Safdarjung: +91-11-26101234
+      🏥 LNJP Hospital: +91-11-23366555
+      🏥 GTB Hospital: +91-11-22093300
+      
+      Available Beds:
+      • AIIMS: 150/1000
+      • Safdarjung: 120/800
+      • LNJP: 200/1200
+      • GTB: 180/900
+    `;
+    alert(hospitals.trim());
+  };
+
+  const emergencyProtocol = () => {
+    const protocol = `
+      Emergency Protocol:
+      1. Verify patient location
+      2. Assess medical condition
+      3. Contact dispatch center
+      4. Prepare medical equipment
+      5. Navigate to nearest hospital
+      6. Update patient status
+      
+      Response Time Target: < 8 minutes
+    `;
+    alert(protocol.trim());
+  };
+
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
       {/* Header */}
@@ -102,15 +139,15 @@ function DriverPageContent() {
           <div className="bg-white rounded-xl p-6 shadow-lg">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
             <div className="space-y-3">
-              <button className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center justify-center gap-2">
+              <button onClick={markAvailable} className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center justify-center gap-2">
                 <CheckCircle className="w-4 h-4" />
                 Mark Available
               </button>
-              <button className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2">
+              <button onClick={contactHospital} className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2">
                 <Phone className="w-4 h-4" />
                 Contact Hospital
               </button>
-              <button className="w-full py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 flex items-center justify-center gap-2">
+              <button onClick={emergencyProtocol} className="w-full py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 flex items-center justify-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
                 Emergency Protocol
               </button>

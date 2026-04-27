@@ -36,6 +36,40 @@ function EmergencyPageContent() {
     alert("Emergency alert sent! Help is on the way.");
   };
 
+  // Call ambulance
+  const callAmbulance = () => {
+    alert("Calling ambulance... Emergency services will contact you shortly!");
+    // In real app, this would make an actual phone call or open dialer
+    window.open("tel:108"); // India's emergency ambulance number
+  };
+
+  // Share location
+  const shareLocation = () => {
+    const location = currentLocation || { lat: 28.6139, lng: 77.2090 };
+    const locationText = `My current location: https://www.google.com/maps?q=${location.lat},${location.lng}`;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(locationText).then(() => {
+      alert("Location copied to clipboard! Share with emergency services.");
+    }).catch(() => {
+      alert(`Location: ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`);
+    });
+  };
+
+  // Show medical history
+  const showMedicalHistory = () => {
+    const medicalInfo = `
+      Medical Information:
+      Name: ${user?.name || "Patient"}
+      Blood Group: O+
+      Allergies: None
+      Medications: None
+      Emergency Contact: +91-XXXXXXXXXX
+      Last Updated: ${new Date().toLocaleDateString()}
+    `;
+    alert(medicalInfo.trim());
+  };
+
   return (
     <div className="h-screen bg-gradient-to-br from-red-50 to-orange-50 flex flex-col">
       {/* Header */}
@@ -83,15 +117,15 @@ function EmergencyPageContent() {
           <div className="bg-white rounded-xl p-6 shadow-lg">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
             <div className="space-y-3">
-              <button className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2">
+              <button onClick={callAmbulance} className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2">
                 <Phone className="w-4 h-4" />
                 Call Ambulance
               </button>
-              <button className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center justify-center gap-2">
+              <button onClick={shareLocation} className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center justify-center gap-2">
                 <MapPin className="w-4 h-4" />
                 Share Location
               </button>
-              <button className="w-full py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 flex items-center justify-center gap-2">
+              <button onClick={showMedicalHistory} className="w-full py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 flex items-center justify-center gap-2">
                 <Activity className="w-4 h-4" />
                 Medical History
               </button>

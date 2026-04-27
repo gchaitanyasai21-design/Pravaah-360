@@ -18,6 +18,40 @@ function AdminPageContent() {
     login("admin@parvah.com", "admin123", "admin");
   }, [login]);
 
+  // Admin action handlers
+  const manageUsers = () => {
+    alert("User Management Panel:\n• Total Users: 1,234\n• Active: 892\n• Inactive: 342\n• New registrations today: 12");
+  };
+
+  const emergencyContacts = () => {
+    const contacts = `
+      Emergency Contacts:
+      🚑 Ambulance: 108
+      🚓 Police: 100
+      🚒 Fire: 101
+      🏥 AIIMS Delhi: +91-11-26588500
+      🏥 Safdarjung: +91-11-26101234
+      🏥 LNJP Hospital: +91-11-23366555
+    `;
+    alert(contacts.trim());
+  };
+
+  const systemAlerts = () => {
+    alert("System Alerts:\n• All systems operational\n• 3 active emergencies\n• 15 ambulances available\n• Response time: 8.5 minutes");
+  };
+
+  const viewReports = () => {
+    const reports = `
+      Today's Reports:
+      • Emergency calls: 42
+      • Average response time: 8.5 min
+      • Ambulances dispatched: 28
+      • Successful rescues: 26
+      • System uptime: 99.8%
+    `;
+    alert(reports.trim());
+  };
+
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
       {/* Header */}
@@ -73,19 +107,19 @@ function AdminPageContent() {
           <div className="bg-white rounded-xl p-6 shadow-lg">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
             <div className="space-y-3">
-              <button className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2">
+              <button onClick={manageUsers} className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2">
                 <Users className="w-4 h-4" />
                 Manage Users
               </button>
-              <button className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center justify-center gap-2">
+              <button onClick={emergencyContacts} className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center justify-center gap-2">
                 <Phone className="w-4 h-4" />
                 Emergency Contacts
               </button>
-              <button className="w-full py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 flex items-center justify-center gap-2">
+              <button onClick={systemAlerts} className="w-full py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 flex items-center justify-center gap-2">
                 <AlertCircle className="w-4 h-4" />
                 System Alerts
               </button>
-              <button className="w-full py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 flex items-center justify-center gap-2">
+              <button onClick={viewReports} className="w-full py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 flex items-center justify-center gap-2">
                 <TrendingUp className="w-4 h-4" />
                 Reports
               </button>
