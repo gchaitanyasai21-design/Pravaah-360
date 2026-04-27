@@ -12,11 +12,24 @@ import LiveMap from "@/components/LiveMapSimple";
 function EmergencyPageContent() {
   const { login, user } = useAuth();
   const [currentLocation] = useState<{ lat: number; lng: number }>({ lat: 28.6139, lng: 77.2090 }); // Delhi location
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     // Auto-login for emergency services
-    login("patient@parvah.com", "patient123", "patient");
+    const loginSuccess = login("patient@parvah.com", "patient123", "patient");
+    setIsAuthenticated(true);
   }, [login]);
+
+  // Show loading if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl text-gray-800">Loading Emergency Services...</div>
+        </div>
+      </div>
+    );
+  }
 
   // Trigger emergency
   const triggerEmergency = () => {
