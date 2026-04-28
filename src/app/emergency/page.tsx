@@ -174,13 +174,19 @@ function EmergencyPageContent() {
       const newLng = startPos.lng + (hospital.lng - startPos.lng) * progress;
       
       setAmbulancePosition({ lat: newLat, lng: newLng });
+      setEta(Math.max(0, 8 - currentStep * 0.4));
       
       if (currentStep >= steps) {
         clearInterval(interval);
-        setSimulationActive(false);
-        setAmbulancePosition(null);
-        setSimulationStage('idle');
-        alert('✅ Successfully delivered to AIIMS Delhi Hospital!');
+        setSimulationStage('hospital');
+        setEta(0);
+        // Show completion message when ambulance reaches hospital
+        setTimeout(() => {
+          setSimulationActive(false);
+          setAmbulancePosition(null);
+          setAssignedAmbulance(null);
+          alert('🏥✅ Emergency Request COMPLETED!\n\nPatient successfully delivered to AIIMS Delhi Hospital.\nAmbulance: ' + assignedAmbulance?.vehicle.number + '\nDriver: ' + assignedAmbulance?.driver.name + '\n\nThank you for using PRAVAH Emergency Services!');
+        }, 2000);
       }
     }, 500);
   };

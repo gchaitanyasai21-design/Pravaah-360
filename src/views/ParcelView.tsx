@@ -46,6 +46,7 @@ export default function ParcelView() {
   const { user } = useAuth();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchCode, setSearchCode] = useState("");
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number }>({ lat: 28.6139, lng: 77.2090 });
   const [parcels, setParcels] = useState<ParcelRequest[]>([
     {
       id: "parcel-1",
@@ -410,10 +411,28 @@ export default function ParcelView() {
             <div className="h-full min-h-[500px] rounded-lg overflow-hidden">
               <LiveMap
                 ambulances={ambulances.filter(a => a.status === "en-route")}
+                deliveryVehicles={[
+                  { id: "DEL-001", lat: 28.6200, lng: 77.2100, status: "In Transit" },
+                  { id: "DEL-002", lat: 28.6050, lng: 77.2150, status: "Delivered" },
+                  { id: "DEL-003", lat: 28.6180, lng: 77.1950, status: "In Transit" },
+                  { id: "DEL-004", lat: 28.6080, lng: 77.2250, status: "In Transit" },
+                  { id: "DEL-005", lat: 28.6150, lng: 77.1900, status: "Delivered" }
+                ]}
+                trafficSignals={[
+                  { id: "TS-001", lat: 28.6139, lng: 77.2090, name: "Connaught Place", status: "Normal" },
+                  { id: "TS-002", lat: 28.6141, lng: 77.2092, name: "India Gate", status: "Busy" },
+                  { id: "TS-003", lat: 28.6100, lng: 77.2150, name: "Karol Bagh", status: "Congested" },
+                  { id: "TS-004", lat: 28.6180, lng: 77.1950, name: "Rajiv Chowk", status: "Normal" }
+                ]}
+                hospitals={[
+                  { id: "AIIMS", lat: 28.6069, lng: 77.2090, name: "AIIMS Delhi", status: "Available" },
+                  { id: "SJDH", lat: 28.5850, lng: 77.2030, name: "Safdarjung Hospital", status: "Available" }
+                ]}
                 emergencies={[]}
-                hospitals={[]}
                 junctions={[]}
-                center={[28.6139, 77.2090] as [number, number]}
+                userLocation={currentLocation || undefined}
+                showUserLocation={true}
+                center={[currentLocation.lat, currentLocation.lng]}
                 zoom={12}
                 showControls={true}
               />

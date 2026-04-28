@@ -318,6 +318,20 @@ export default function WomenSafetyView() {
               <div className="h-full min-h-[400px] rounded-lg overflow-hidden">
                 <LiveMap
                   ambulances={ambulances.filter(a => a.status === "en-route")}
+                  sosVehicles={[
+                    { id: "POL-001", lat: 28.6150, lng: 77.2050, type: "police" },
+                    { id: "POL-002", lat: 28.6100, lng: 77.2250, type: "police" },
+                    { id: "POL-003", lat: 28.6080, lng: 77.1980, type: "police" }
+                  ]}
+                  trafficSignals={[
+                    { id: "TS-001", lat: 28.6139, lng: 77.2090, name: "Connaught Place", status: "Normal" },
+                    { id: "TS-002", lat: 28.6141, lng: 77.2092, name: "India Gate", status: "Busy" },
+                    { id: "TS-003", lat: 28.6100, lng: 77.2150, name: "Karol Bagh", status: "Congested" }
+                  ]}
+                  hospitals={[
+                    { id: "AIIMS", lat: 28.6069, lng: 77.2090, name: "AIIMS Delhi", status: "Available" },
+                    { id: "SJDH", lat: 28.5850, lng: 77.2030, name: "Safdarjung Hospital", status: "Available" }
+                  ]}
                   emergencies={emergencies.filter(e => e.userId === user?.id)}
                   userLocation={currentLocation || undefined}
                   showUserLocation={true}
