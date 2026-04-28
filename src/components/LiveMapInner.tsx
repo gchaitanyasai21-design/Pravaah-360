@@ -9,10 +9,13 @@ interface LiveMapProps {
   deliveryVehicles?: any[];
   trafficSignals?: any[];
   sosVehicles?: any[];
+  hospitals?: any[];
   userLocation?: { lat: number; lng: number };
   showUserLocation?: boolean;
   center?: [number, number];
   zoom?: number;
+  simulationActive?: boolean;
+  onSimulationUpdate?: (data: any) => void;
 }
 
 export default function LiveMapInner({
@@ -22,10 +25,13 @@ export default function LiveMapInner({
   deliveryVehicles = [],
   trafficSignals = [],
   sosVehicles = [],
+  hospitals = [],
   userLocation,
   showUserLocation = false,
   center = [28.6139, 77.2090],
   zoom = 12,
+  simulationActive = false,
+  onSimulationUpdate,
 }: LiveMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -88,6 +94,14 @@ export default function LiveMapInner({
         className: 'custom-marker'
       });
 
+      const hospitalIcon = L.divIcon({
+        html: '<div style="background: #e91e63; color: white; border-radius: 8px; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">🏥</div>',
+        iconSize: [35, 35],
+        iconAnchor: [17, 17],
+        popupAnchor: [0, -17],
+        className: 'custom-marker'
+      });
+
       // Add user location marker
       if (showUserLocation && userLocation) {
         L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
@@ -128,6 +142,15 @@ export default function LiveMapInner({
         if (signal.lat && signal.lng) {
           L.marker([signal.lat, signal.lng], { icon: trafficSignalIcon })
             .bindPopup(`🚦 ${signal.name || "Traffic Signal"} - ${signal.status || "Normal"}`)
+            .addTo(map);
+        }
+      });
+
+      // Add hospital markers
+      hospitals?.forEach((hospital) => {
+        if (hospital.lat && hospital.lng) {
+          L.marker([hospital.lat, hospital.lng], { icon: hospitalIcon })
+            .bindPopup(`🏥 ${hospital.name || "Hospital"} - ${hospital.status || "Available"}`)
             .addTo(map);
         }
       });

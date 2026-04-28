@@ -24,6 +24,8 @@ interface LiveMapProps {
   center?: [number, number];
   zoom?: number;
   showControls?: boolean;
+  simulationActive?: boolean;
+  onSimulationUpdate?: (data: any) => void;
 }
 
 export default function LiveMap(props: LiveMapProps) {

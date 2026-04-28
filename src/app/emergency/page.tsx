@@ -13,6 +13,10 @@ function EmergencyPageContent() {
   const { login, user } = useAuth();
   const [currentLocation] = useState<{ lat: number; lng: number }>({ lat: 28.6139, lng: 77.2090 }); // Delhi location
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [simulationActive, setSimulationActive] = useState(false);
+  const [ambulancePosition, setAmbulancePosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [eta, setEta] = useState<number>(0);
+  const [simulationStage, setSimulationStage] = useState<'idle' | 'dispatched' | 'arrived' | 'picked' | 'hospital'>('idle');
 
   useEffect(() => {
     // Auto-login for emergency services
@@ -35,6 +39,24 @@ function EmergencyPageContent() {
   const triggerEmergency = () => {
     alert("Emergency alert sent! Help is on the way.");
   };
+
+  // Update ambulance markers to include moving ambulance
+  const allAmbulances = [
+    { id: "AMB-001", lat: 28.6200, lng: 77.2100, status: "Available" },
+    { id: "AMB-002", lat: 28.6050, lng: 77.2150, status: "On Duty" },
+    { id: "AMB-003", lat: 28.6180, lng: 77.1950, status: "Available" },
+    { id: "AMB-004", lat: 28.6000, lng: 77.2000, status: "Available" },
+    { id: "AMB-005", lat: 28.6250, lng: 77.2200, status: "On Duty" }
+  ];
+
+  if (ambulancePosition && simulationActive) {
+    allAmbulances.unshift({
+      id: "AMB-SOS", 
+      lat: ambulancePosition.lat, 
+      lng: ambulancePosition.lng, 
+      status: "Responding to SOS"
+    });
+  }
 
   // Call ambulance
   const callAmbulance = () => {
@@ -68,6 +90,80 @@ function EmergencyPageContent() {
       Last Updated: ${new Date().toLocaleDateString()}
     `;
     alert(medicalInfo.trim());
+  };
+
+  // SOS Simulation Functions
+  const startSOSSimulation = () => {
+    if (simulationActive) return;
+    
+    setSimulationActive(true);
+    setSimulationStage('dispatched');
+    setEta(8); // 8 minutes initial ETA
+    
+    // Find nearest ambulance
+    const nearestAmbulance = { lat: 28.6200, lng: 77.2100 };
+    setAmbulancePosition(nearestAmbulance);
+    
+    // Start ambulance movement
+    animateAmbulanceToUser(nearestAmbulance);
+  };
+
+  const animateAmbulanceToUser = (startPos: { lat: number; lng: number }) => {
+    const steps = 20;
+    let currentStep = 0;
+    
+    const interval = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+      
+      const newLat = startPos.lat + (currentLocation.lat - startPos.lat) * progress;
+      const newLng = startPos.lng + (currentLocation.lng - startPos.lng) * progress;
+      
+      setAmbulancePosition({ lat: newLat, lng: newLng });
+      setEta(Math.max(0, 8 * (1 - progress)));
+      
+      if (currentStep >= steps) {
+        clearInterval(interval);
+        setSimulationStage('arrived');
+        setEta(0);
+        
+        // Auto pickup after 2 seconds
+        setTimeout(() => {
+          setSimulationStage('picked');
+          // Go to hospital after 2 seconds
+          setTimeout(() => {
+            animateToHospital();
+          }, 2000);
+        }, 2000);
+      }
+    }, 500);
+  };
+
+  const animateToHospital = () => {
+    setSimulationStage('hospital');
+    const hospital = { lat: 28.6069, lng: 77.2090 }; // AIIMS Delhi
+    const startPos = ambulancePosition || currentLocation;
+    
+    const steps = 15;
+    let currentStep = 0;
+    
+    const interval = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+      
+      const newLat = startPos.lat + (hospital.lat - startPos.lat) * progress;
+      const newLng = startPos.lng + (hospital.lng - startPos.lng) * progress;
+      
+      setAmbulancePosition({ lat: newLat, lng: newLng });
+      
+      if (currentStep >= steps) {
+        clearInterval(interval);
+        setSimulationActive(false);
+        setAmbulancePosition(null);
+        setSimulationStage('idle');
+        alert('✅ Successfully delivered to AIIMS Delhi Hospital!');
+      }
+    }, 500);
   };
 
   return (
@@ -117,6 +213,10 @@ function EmergencyPageContent() {
           <div className="bg-white rounded-xl p-6 shadow-lg">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
             <div className="space-y-3">
+              <button onClick={startSOSSimulation} disabled={simulationActive} className="w-full py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <AlertTriangle className="w-4 h-4" />
+                {simulationActive ? `SOS Active - ${simulationStage}` : '🚨 Start SOS Simulation'}
+              </button>
               <button onClick={callAmbulance} className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2">
                 <Phone className="w-4 h-4" />
                 Call Ambulance
@@ -129,6 +229,14 @@ function EmergencyPageContent() {
                 <Activity className="w-4 h-4" />
                 Medical History
               </button>
+              {eta > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-yellow-800">🚑 Ambulance ETA:</span>
+                    <span className="text-lg font-bold text-yellow-900">{eta} min</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -169,20 +277,23 @@ function EmergencyPageContent() {
             
             <div className="h-full min-h-[500px] rounded-lg overflow-hidden">
               <LiveMap
-                ambulances={[
-                  { id: "AMB-001", lat: 28.6140, lng: 77.2091, status: "Available" },
-                  { id: "AMB-002", lat: 28.6138, lng: 77.2089, status: "On Duty" },
-                  { id: "AMB-003", lat: 28.6142, lng: 77.2093, status: "Available" }
+                ambulances={allAmbulances}
+                hospitals={[
+                  { id: "AIIMS", lat: 28.6069, lng: 77.2090, name: "AIIMS Delhi", status: "Available" },
+                  { id: "SJDH", lat: 28.5850, lng: 77.2030, name: "Safdarjung Hospital", status: "Available" },
+                  { id: "LNJP", lat: 28.6580, lng: 77.2100, name: "LNJP Hospital", status: "Available" },
+                  { id: "GTB", lat: 28.6800, lng: 77.2800, name: "GTB Hospital", status: "Available" }
                 ]}
                 sosVehicles={[
-                  { id: "POL-001", lat: 28.6135, lng: 77.2085, type: "police" },
-                  { id: "AMB-004", lat: 28.6145, lng: 77.2095, type: "ambulance" }
+                  { id: "POL-001", lat: 28.6150, lng: 77.2050, type: "police" },
+                  { id: "POL-002", lat: 28.6100, lng: 77.2250, type: "police" },
+                  { id: "AMB-006", lat: 28.5950, lng: 77.2100, type: "ambulance" }
                 ]}
                 userLocation={currentLocation}
                 showUserLocation={true}
                 emergencies={[]}
                 center={currentLocation ? [currentLocation.lat, currentLocation.lng] : [28.6139, 77.2090]}
-                zoom={15}
+                zoom={13}
               />
             </div>
           </div>
