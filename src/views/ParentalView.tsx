@@ -312,8 +312,6 @@ export default function ParentalView() {
                   </span>
                 )}
               </div>
-            )}
-              
               <div className="h-full min-h-[400px] rounded-lg overflow-hidden">
                 <LiveMap
                   ambulances={ambulances.filter(a => a.status === "en-route")}
