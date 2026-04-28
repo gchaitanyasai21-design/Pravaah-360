@@ -343,7 +343,7 @@ export default function ElderlyView() {
                 <LiveMap
                   ambulances={ambulances.filter(a => a.status === "en-route")}
                   emergencies={emergencies.filter(e => e.userId === user?.id)}
-                  userLocation={currentLocation}
+                  userLocation={currentLocation || undefined}
                   showUserLocation={!!currentLocation}
                   center={currentLocation ? [currentLocation.lat, currentLocation.lng] : [28.6139, 77.2090]}
                   zoom={14}
