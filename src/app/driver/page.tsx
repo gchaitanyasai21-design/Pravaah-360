@@ -171,20 +171,40 @@ function DriverPageContent() {
             <div className="h-full min-h-[500px] rounded-lg overflow-hidden">
               <LiveMap
                 ambulances={[
-                  { id: "AMB-001", lat: 28.6140, lng: 77.2091, status: "Available" },
-                  { id: "AMB-002", lat: 28.6138, lng: 77.2089, status: "On Duty" },
-                  { id: "AMB-003", lat: 28.6142, lng: 77.2093, status: "Available" }
+                  { id: "AMB-001", lat: 28.6200, lng: 77.2100, status: "Available" },
+                  { id: "AMB-002", lat: 28.6050, lng: 77.2150, status: "On Duty" },
+                  { id: "AMB-003", lat: 28.6180, lng: 77.1950, status: "Available" },
+                  { id: "AMB-004", lat: 28.6000, lng: 77.2000, status: "En Route" },
+                  { id: "AMB-005", lat: 28.6250, lng: 77.2200, status: "Available" }
                 ]}
                 trafficSignals={[
                   { id: "TS-001", lat: 28.6139, lng: 77.2090, name: "Connaught Place", status: "Normal" },
-                  { id: "TS-002", lat: 28.6141, lng: 77.2092, name: "India Gate", status: "Busy" }
+                  { id: "TS-002", lat: 28.6141, lng: 77.2092, name: "India Gate", status: "Busy" },
+                  { id: "TS-003", lat: 28.6100, lng: 77.2150, name: "Karol Bagh", status: "Congested" },
+                  { id: "TS-004", lat: 28.6180, lng: 77.1950, name: "Rajiv Chowk", status: "Normal" },
+                  { id: "TS-005", lat: 28.6080, lng: 77.2050, name: "Patel Chowk", status: "Busy" },
+                  { id: "TS-006", lat: 28.6220, lng: 77.2120, name: "ITO", status: "Normal" }
                 ]}
                 sosVehicles={[
-                  { id: "POL-001", lat: 28.6135, lng: 77.2085, type: "police" }
+                  { id: "POL-001", lat: 28.6150, lng: 77.2050, type: "police" },
+                  { id: "POL-002", lat: 28.6100, lng: 77.2250, type: "police" },
+                  { id: "POL-003", lat: 28.6080, lng: 77.1980, type: "police" }
+                ]}
+                deliveryVehicles={[
+                  { id: "DEL-001", lat: 28.6070, lng: 77.2120, status: "In Transit" },
+                  { id: "DEL-002", lat: 28.6170, lng: 77.1980, status: "Delivered" },
+                  { id: "DEL-003", lat: 28.6230, lng: 77.2080, status: "In Transit" }
+                ]}
+                hospitals={[
+                  { id: "AIIMS", lat: 28.6069, lng: 77.2090, name: "AIIMS Delhi", status: "Available" },
+                  { id: "SJDH", lat: 28.5850, lng: 77.2030, name: "Safdarjung Hospital", status: "Available" }
+                ]}
+                emergencies={[
+                  { id: "EMR-001", lat: 28.6120, lng: 77.2080, type: "medical", status: "active" },
+                  { id: "EMR-002", lat: 28.6180, lng: 77.2150, type: "accident", status: "active" }
                 ]}
                 userLocation={currentLocation}
                 showUserLocation={true}
-                emergencies={[]}
                 center={[currentLocation.lat, currentLocation.lng]}
                 zoom={12}
               />

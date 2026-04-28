@@ -143,30 +143,53 @@ function AdminPageContent() {
             <div className="h-full min-h-[500px] rounded-lg overflow-hidden">
               <LiveMap
                 ambulances={[
-                  { id: "AMB-001", lat: 28.6140, lng: 77.2091, status: "Available" },
-                  { id: "AMB-002", lat: 28.6138, lng: 77.2089, status: "On Duty" },
-                  { id: "AMB-003", lat: 28.6142, lng: 77.2093, status: "Available" },
-                  { id: "AMB-004", lat: 28.6135, lng: 77.2085, status: "Available" },
-                  { id: "AMB-005", lat: 28.6145, lng: 77.2095, status: "On Duty" }
+                  { id: "AMB-001", lat: 28.6200, lng: 77.2100, status: "Available" },
+                  { id: "AMB-002", lat: 28.6050, lng: 77.2150, status: "On Duty" },
+                  { id: "AMB-003", lat: 28.6180, lng: 77.1950, status: "Available" },
+                  { id: "AMB-004", lat: 28.6000, lng: 77.2000, status: "Available" },
+                  { id: "AMB-005", lat: 28.6250, lng: 77.2200, status: "On Duty" },
+                  { id: "AMB-006", lat: 28.5950, lng: 77.2100, status: "Available" },
+                  { id: "AMB-007", lat: 28.6300, lng: 77.2050, status: "On Duty" },
+                  { id: "AMB-008", lat: 28.6100, lng: 77.1900, status: "Available" }
                 ]}
                 deliveryVehicles={[
-                  { id: "DEL-001", lat: 28.6132, lng: 77.2082, status: "In Transit" },
-                  { id: "DEL-002", lat: 28.6148, lng: 77.2098, status: "Delivered" },
-                  { id: "DEL-003", lat: 28.6130, lng: 77.2080, status: "In Transit" }
+                  { id: "DEL-001", lat: 28.6070, lng: 77.2120, status: "In Transit" },
+                  { id: "DEL-002", lat: 28.6170, lng: 77.1980, status: "Delivered" },
+                  { id: "DEL-003", lat: 28.6230, lng: 77.2080, status: "In Transit" },
+                  { id: "DEL-004", lat: 28.6080, lng: 77.2250, status: "In Transit" },
+                  { id: "DEL-005", lat: 28.6150, lng: 77.1950, status: "Delivered" }
                 ]}
                 trafficSignals={[
                   { id: "TS-001", lat: 28.6139, lng: 77.2090, name: "Connaught Place", status: "Normal" },
                   { id: "TS-002", lat: 28.6141, lng: 77.2092, name: "India Gate", status: "Busy" },
                   { id: "TS-003", lat: 28.6137, lng: 77.2088, name: "Parliament Street", status: "Normal" },
-                  { id: "TS-004", lat: 28.6143, lng: 77.2094, name: "Janpath", status: "Congested" }
+                  { id: "TS-004", lat: 28.6143, lng: 77.2094, name: "Janpath", status: "Congested" },
+                  { id: "TS-005", lat: 28.6100, lng: 77.2150, name: "Karol Bagh", status: "Congested" },
+                  { id: "TS-006", lat: 28.6180, lng: 77.1950, name: "Rajiv Chowk", status: "Normal" },
+                  { id: "TS-007", lat: 28.6080, lng: 77.2050, name: "Patel Chowk", status: "Busy" },
+                  { id: "TS-008", lat: 28.6220, lng: 77.2120, name: "ITO", status: "Normal" },
+                  { id: "TS-009", lat: 28.6150, lng: 77.1900, name: "Daryaganj", status: "Congested" },
+                  { id: "TS-010", lat: 28.6200, lng: 77.2300, name: "Lajpat Nagar", status: "Normal" },
+                  { id: "TS-011", lat: 28.6050, lng: 77.1800, name: "Paharganj", status: "Busy" },
+                  { id: "TS-012", lat: 28.6350, lng: 77.2200, name: "Nehru Place", status: "Congested" }
                 ]}
                 sosVehicles={[
-                  { id: "POL-001", lat: 28.6135, lng: 77.2085, type: "police" },
-                  { id: "POL-002", lat: 28.6147, lng: 77.2097, type: "police" }
+                  { id: "POL-001", lat: 28.6150, lng: 77.2050, type: "police" },
+                  { id: "POL-002", lat: 28.6100, lng: 77.2250, type: "police" },
+                  { id: "POL-003", lat: 28.6080, lng: 77.1980, type: "police" },
+                  { id: "POL-004", lat: 28.6200, lng: 77.1900, type: "police" },
+                  { id: "POL-005", lat: 28.6050, lng: 77.2150, type: "police" }
+                ]}
+                hospitals={[
+                  { id: "AIIMS", lat: 28.6069, lng: 77.2090, name: "AIIMS Delhi", status: "Available" },
+                  { id: "SJDH", lat: 28.5850, lng: 77.2030, name: "Safdarjung Hospital", status: "Available" },
+                  { id: "LNJP", lat: 28.6580, lng: 77.2100, name: "LNJP Hospital", status: "Available" },
+                  { id: "GTB", lat: 28.6800, lng: 77.2800, name: "GTB Hospital", status: "Available" },
+                  { id: "MAMC", lat: 28.6350, lng: 77.2000, name: "MAMC", status: "Available" }
                 ]}
                 emergencies={[]}
                 center={[currentLocation.lat, currentLocation.lng]}
-                zoom={12}
+                zoom={11}
               />
             </div>
           </div>

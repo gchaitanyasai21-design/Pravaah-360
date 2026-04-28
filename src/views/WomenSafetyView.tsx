@@ -52,11 +52,30 @@ export default function WomenSafetyView() {
     }
   };
 
-  // Toggle location tracking
+  // Generate tracking code
+  const generateTrackingCode = () => {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setShareCode(code);
+    updateProfile({ trackingShareCode: code });
+  };
+
+  // Toggle tracking
   const toggleTracking = () => {
-    setIsTrackingEnabled(!isTrackingEnabled);
     if (!isTrackingEnabled) {
-      getCurrentLocation();
+      generateTrackingCode();
+      setIsTrackingEnabled(true);
+      // Start real-time location updates
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          setCurrentLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        }
+      );
+    } else {
+      setIsTrackingEnabled(false);
+      setShareCode("");
     }
   };
 
@@ -220,10 +239,21 @@ export default function WomenSafetyView() {
                 <h3 className="text-lg font-semibold text-gray-800">Share Code</h3>
               </div>
               <div className="space-y-3">
-                <div className="p-3 bg-purple-50 rounded-lg">
-                  <p className="text-sm text-purple-800 mb-1">Your tracking code:</p>
-                  <p className="text-xl font-bold text-purple-900">{shareCode}</p>
-                </div>
+                {shareCode && (
+                  <div className="p-4 bg-purple-50 border-2 border-purple-300 rounded-lg">
+                    <p className="text-sm text-purple-800 mb-2 font-semibold">📍 Your Tracking Code:</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl font-bold text-purple-900">{shareCode}</p>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(shareCode)}
+                        className="px-3 py-1 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <p className="text-xs text-purple-700 mt-2">Share this code with trusted contacts</p>
+                  </div>
+                )}
                 <p className="text-sm text-gray-600">
                   Share this code with trusted contacts to allow them to track your location.
                 </p>
@@ -289,8 +319,10 @@ export default function WomenSafetyView() {
                 <LiveMap
                   ambulances={ambulances.filter(a => a.status === "en-route")}
                   emergencies={emergencies.filter(e => e.userId === user?.id)}
+                  userLocation={currentLocation}
+                  showUserLocation={true}
                   center={currentLocation ? [currentLocation.lat, currentLocation.lng] : [28.6139, 77.2090]}
-                  zoom={15}
+                  zoom={14}
                 />
               </div>
             </div>

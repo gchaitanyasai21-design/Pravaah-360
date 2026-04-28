@@ -17,6 +17,7 @@ function EmergencyPageContent() {
   const [ambulancePosition, setAmbulancePosition] = useState<{ lat: number; lng: number } | null>(null);
   const [eta, setEta] = useState<number>(0);
   const [simulationStage, setSimulationStage] = useState<'idle' | 'dispatched' | 'arrived' | 'picked' | 'hospital'>('idle');
+  const [assignedAmbulance, setAssignedAmbulance] = useState<any>(null);
 
   useEffect(() => {
     // Auto-login for emergency services
@@ -100,9 +101,27 @@ function EmergencyPageContent() {
     setSimulationStage('dispatched');
     setEta(8); // 8 minutes initial ETA
     
-    // Find nearest ambulance
-    const nearestAmbulance = { lat: 28.6200, lng: 77.2100 };
-    setAmbulancePosition(nearestAmbulance);
+    // Find nearest ambulance with details
+    const nearestAmbulance = { 
+      id: "AMB-SOS", 
+      lat: 28.6200, 
+      lng: 77.2100,
+      driver: {
+        name: "Rajesh Kumar",
+        phone: "+91-9876543210",
+        experience: "5 years",
+        license: "DL-2020-DEL-12345"
+      },
+      vehicle: {
+        number: "DL-01-AB-1234",
+        type: "Advanced Life Support",
+        equipment: "Defibrillator, Oxygen, First Aid Kit",
+        status: "Responding to Emergency"
+      }
+    };
+    
+    setAssignedAmbulance(nearestAmbulance);
+    setAmbulancePosition({ lat: nearestAmbulance.lat, lng: nearestAmbulance.lng });
     
     // Start ambulance movement
     animateAmbulanceToUser(nearestAmbulance);
@@ -234,6 +253,42 @@ function EmergencyPageContent() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-yellow-800">🚑 Ambulance ETA:</span>
                     <span className="text-lg font-bold text-yellow-900">{eta} min</span>
+                  </div>
+                </div>
+              )}
+
+              {assignedAmbulance && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-3">
+                  <h4 className="font-semibold text-blue-900 mb-3">🚑 Assigned Ambulance</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Vehicle Number:</span>
+                      <span className="font-medium">{assignedAmbulance.vehicle.number}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Vehicle Type:</span>
+                      <span className="font-medium">{assignedAmbulance.vehicle.type}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Driver Name:</span>
+                      <span className="font-medium">{assignedAmbulance.driver.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Driver Phone:</span>
+                      <span className="font-medium">{assignedAmbulance.driver.phone}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Experience:</span>
+                      <span className="font-medium">{assignedAmbulance.driver.experience}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Equipment:</span>
+                      <span className="font-medium text-xs">{assignedAmbulance.vehicle.equipment}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Status:</span>
+                      <span className="font-medium text-green-600">{assignedAmbulance.vehicle.status}</span>
+                    </div>
                   </div>
                 </div>
               )}

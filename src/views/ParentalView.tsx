@@ -312,53 +312,17 @@ export default function ParentalView() {
                   </span>
                 )}
               </div>
+            )}
               
               <div className="h-full min-h-[400px] rounded-lg overflow-hidden">
                 <LiveMap
                   ambulances={ambulances.filter(a => a.status === "en-route")}
                   emergencies={emergencies.filter(e => children.some(c => c.id === e.userId))}
+                  userLocation={selectedChild?.currentLocation}
+                  showUserLocation={!!selectedChild?.currentLocation}
                   center={selectedChild?.currentLocation ? [selectedChild.currentLocation.lat, selectedChild.currentLocation.lng] : [28.6139, 77.2090]}
-                  zoom={15}
+                  zoom={14}
                 />
-              </div>
-            </div>
-
-            {/* Alerts */}
-            <div className="bg-white rounded-xl shadow-lg p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-yellow-600" />
-                  Recent Alerts
-                </h3>
-                <span className="text-sm text-gray-600">{alerts.length} alerts</span>
-              </div>
-              
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {alerts.map((alert) => {
-                  const child = children.find(c => c.id === alert.childId);
-                  return (
-                    <div key={alert.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className={`w-2 h-2 rounded-full ${
-                        alert.type === 'emergency' ? 'bg-red-500' :
-                        alert.type === 'geofence' ? 'bg-blue-500' :
-                        alert.type === 'sos' ? 'bg-yellow-500' : 'bg-gray-500'
-                      }`} />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-800">
-                          {child?.name}: {alert.message}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {alert.timestamp.toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {alerts.length === 0 && (
-                  <div className="text-center py-4 text-gray-500">
-                    <p>No recent alerts</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>

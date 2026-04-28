@@ -176,6 +176,42 @@ export default function LiveMapInner({
     };
   }, []);
 
+  // Effect to handle real-time marker updates
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    const updateMarkers = async () => {
+      const L = (await import("leaflet")).default;
+      
+      // Clear existing ambulance markers
+      mapInstanceRef.current.eachLayer((layer: any) => {
+        if (layer.options.icon && layer.options.icon.options.className === 'custom-marker') {
+          mapInstanceRef.current.removeLayer(layer);
+        }
+      });
+
+      // Recreate icons
+      const ambulanceIcon = L.divIcon({
+        html: '<div style="background: #ff4444; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🚑</div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+        popupAnchor: [0, -15],
+        className: 'custom-marker'
+      });
+
+      // Add updated ambulance markers
+      ambulances.forEach((ambulance) => {
+        if (ambulance.lat && ambulance.lng) {
+          L.marker([ambulance.lat, ambulance.lng], { icon: ambulanceIcon })
+            .bindPopup(`🚑 ${ambulance.id || "Ambulance"} - ${ambulance.status || "Available"}`)
+            .addTo(mapInstanceRef.current);
+        }
+      });
+    };
+
+    updateMarkers();
+  }, [ambulances]);
+
   return (
     <div
       ref={mapRef}
