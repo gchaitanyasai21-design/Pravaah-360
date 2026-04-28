@@ -267,6 +267,24 @@ export default function TrafficView() {
           <LiveMap
             junctions={junctions}
             ambulances={ambulances}
+            deliveryVehicles={[
+              { id: "DEL-001", lat: 28.6070, lng: 77.2120, status: "In Transit" },
+              { id: "DEL-002", lat: 28.6170, lng: 77.1980, status: "Delivered" },
+              { id: "DEL-003", lat: 28.6230, lng: 77.2080, status: "In Transit" }
+            ]}
+            sosVehicles={[
+              { id: "POL-001", lat: 28.6150, lng: 77.2050, type: "police" },
+              { id: "POL-002", lat: 28.6100, lng: 77.2250, type: "police" }
+            ]}
+            trafficSignals={[
+              { id: "TS-001", lat: 28.6139, lng: 77.2090, name: "Connaught Place", status: "Normal" },
+              { id: "TS-002", lat: 28.6141, lng: 77.2092, name: "India Gate", status: "Busy" },
+              { id: "TS-003", lat: 28.6100, lng: 77.2150, name: "Karol Bagh", status: "Congested" }
+            ]}
+            hospitals={[
+              { id: "AIIMS", lat: 28.6069, lng: 77.2090, name: "AIIMS Delhi", status: "Available" },
+              { id: "SJDH", lat: 28.5850, lng: 77.2030, name: "Safdarjung Hospital", status: "Available" }
+            ]}
             emergencies={emergencies.filter((e) => e.status !== "completed")}
             center={[28.6139, 77.2090]}
             zoom={12}
