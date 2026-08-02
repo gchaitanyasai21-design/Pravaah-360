@@ -5,3 +5,5 @@ node_modules
 dist
 build
 .vercel
+.env.local
+.env.local
