@@ -2,278 +2,792 @@
 
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
+import { useAuth } from "@/store/AuthContext";
+import { AppProvider } from "@/store/AppContext";
 import {
-  Phone, MapPin, User, Heart, Shield, Flame,
-  AlertTriangle, Clock, Navigation, Zap
+  AlertTriangle, Phone, MapPin, Clock,
+  Activity, Siren, Hospital, Shield,
+  Zap, ArrowLeft, Truck, CheckCircle,
+  Navigation, Radio, Users, LogOut
 } from "lucide-react";
 
-const LiveMap = dynamic(() => import("@/components/LiveMap"), {
-  ssr: false,
-  loading: () => (
-    <div style={{ height: "600px", width: "100%" }} className="flex items-center justify-center text-white/60">
-      Loading map...
-    </div>
-  ),
-});
+// Dynamic Map Import
+const LiveMap = dynamic(
+  () => import("@/components/LiveMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full bg-slate-900
+      flex items-center justify-center rounded-xl">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-blue-400
+          border-t-transparent rounded-full animate-spin" />
+          <p className="text-blue-300 text-sm font-medium">
+            Loading Map...
+          </p>
+        </div>
+      </div>
+    )
+  }
+);
 
-// ===== STATIC DATA =====
+// ✅ 15 REAL Vijayawada Hospitals
 const HOSPITALS = [
-  { id: "H1", name: "AIIMS Delhi", lat: 28.5672, lng: 77.2100 },
-  { id: "H2", name: "Safdarjung Hospital", lat: 28.5688, lng: 77.2064 },
-  { id: "H3", name: "RML Hospital", lat: 28.6250, lng: 77.2050 },
+  { id: "H1", name: "Aster Ramesh Hospital",
+    lat: 16.5109, lng: 80.6395,
+    beds: 15, distance: "1.8 km", time: "6 min",
+    type: "Private", status: "Available" },
+  { id: "H2", name: "Manipal Hospital Vijayawada",
+    lat: 16.5449, lng: 80.6440,
+    beds: 20, distance: "4.2 km", time: "14 min",
+    type: "Private", status: "Available" },
+  { id: "H3", name: "Andhra Hospitals",
+    lat: 16.5033, lng: 80.6510,
+    beds: 12, distance: "1.5 km", time: "6 min",
+    type: "Private", status: "Available" },
+  { id: "H4", name: "Government General Hospital",
+    lat: 16.5089, lng: 80.6187,
+    beds: 30, distance: "2.1 km", time: "8 min",
+    type: "Government", status: "Available" },
+  { id: "H5", name: "Nagarjuna Hospital",
+    lat: 16.4856, lng: 80.6917,
+    beds: 10, distance: "5.5 km", time: "18 min",
+    type: "Private", status: "Available" },
+  { id: "H6", name: "Rainbow Children's Hospital",
+    lat: 16.5017, lng: 80.6557,
+    beds: 8, distance: "2.3 km", time: "8 min",
+    type: "Private", status: "Available" },
+  { id: "H7", name: "KIMS Hospital Vijayawada",
+    lat: 16.5151, lng: 80.6429,
+    beds: 18, distance: "2.5 km", time: "9 min",
+    type: "Private", status: "Available" },
+  { id: "H8", name: "LV Prasad Eye Institute",
+    lat: 16.4898, lng: 80.6652,
+    beds: 6, distance: "3.2 km", time: "11 min",
+    type: "Private", status: "Available" },
+  { id: "H9", name: "Capital Hospitals",
+    lat: 16.5085, lng: 80.7004,
+    beds: 14, distance: "4.8 km", time: "16 min",
+    type: "Private", status: "Available" },
+  { id: "H10", name: "Kamineni Hospital",
+    lat: 16.4930, lng: 80.6710,
+    beds: 11, distance: "3.8 km", time: "13 min",
+    type: "Private", status: "Available" },
+  { id: "H11", name: "Sentini Hospitals",
+    lat: 16.5175, lng: 80.6318,
+    beds: 9, distance: "2.8 km", time: "10 min",
+    type: "Private", status: "Available" },
+  { id: "H12", name: "NRI Medical College",
+    lat: 16.4429, lng: 80.6220,
+    beds: 25, distance: "8.5 km", time: "22 min",
+    type: "Private", status: "Available" },
+  { id: "H13", name: "Ramesh Hospitals",
+    lat: 16.5109, lng: 80.6395,
+    beds: 15, distance: "1.9 km", time: "7 min",
+    type: "Private", status: "Available" },
+  { id: "H14", name: "Lalitha Super Speciality",
+    lat: 16.5266, lng: 80.6199,
+    beds: 13, distance: "3.1 km", time: "11 min",
+    type: "Private", status: "Available" },
+  { id: "H15", name: "Vijaya Super Specialty",
+    lat: 16.4972, lng: 80.6467,
+    beds: 10, distance: "2.4 km", time: "9 min",
+    type: "Private", status: "Available" },
 ];
 
-const AMBULANCES = [
-  { id: "AMB-01", lat: 28.6300, lng: 77.2200 },
-  { id: "AMB-02", lat: 28.6100, lng: 77.2300 },
-  { id: "AMB-03", lat: 28.6500, lng: 77.1950 },
+// ✅ Ambulances at hospitals
+const INITIAL_AMBULANCES = [
+  { id: "AMB-001", lat: 16.5109, lng: 80.6395,
+    status: "Available", hospital: "Aster Ramesh" },
+  { id: "AMB-002", lat: 16.5449, lng: 80.6440,
+    status: "Available", hospital: "Manipal" },
+  { id: "AMB-003", lat: 16.5089, lng: 80.6187,
+    status: "Available", hospital: "Government General" },
+  { id: "AMB-004", lat: 16.5033, lng: 80.6510,
+    status: "Available", hospital: "Andhra Hospitals" },
+  { id: "AMB-005", lat: 16.5151, lng: 80.6429,
+    status: "Available", hospital: "KIMS" },
 ];
 
-const TRAFFIC_SIGNALS = [
-  { name: "Connaught Place", lat: 28.6260, lng: 77.2100, status: "RED" },
-  { name: "India Gate", lat: 28.6120, lng: 77.2290, status: "YELLOW" },
-  { name: "Karol Bagh", lat: 28.6580, lng: 77.1920, status: "GREEN" },
-  { name: "Rajiv Chowk", lat: 28.6350, lng: 77.2080, status: "RED" },
-];
+// ✅ Assigned Ambulance Info
+const ASSIGNED_AMBULANCE = {
+  id: "AMB-SOS",
+  driver: {
+    name: "Rajesh Kumar",
+    phone: "+91-9876543210",
+    experience: "5 years",
+    license: "DL-2020-12345",
+  },
+  vehicle: {
+    number: "AP-16-AB-1234",
+    type: "Advanced Life Support",
+    equipment: "Defibrillator, Oxygen, First Aid",
+  },
+};
 
-// Patient (user) location
-const PATIENT = { lat: 28.6280, lng: 77.2180 };
+type Stage = "idle" | "dispatched" | "arrived" | "picked" | "hospital";
 
-export default function EmergencyPage() {
-  const [sosState, setSosState] = useState<"IDLE" | "COUNTDOWN" | "EN_ROUTE" | "ARRIVED">("IDLE");
-  const [countdown, setCountdown] = useState(0);
-  const [movingAmb, setMovingAmb] = useState<{ lat: number; lng: number } | null>(null);
-  const [route, setRoute] = useState<[number, number][] | null>(null);
-  const animRef = useRef<NodeJS.Timeout | null>(null);
+function EmergencyPageContent() {
+  const { login, user } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Handle SOS Button Press
-  const handleSOS = () => {
-    if (sosState !== "IDLE") return;
-    setSosState("COUNTDOWN");
-    setCountdown(3);
+  // ✅ Real GPS Location
+  const [userLocation, setUserLocation] = useState({
+    lat: 16.5062, lng: 80.6480, // Vijayawada default
+  });
+  const [locationStatus, setLocationStatus] = useState<
+    "detecting" | "active" | "denied"
+  >("detecting");
 
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          startAmbulanceDispatch();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+  // SOS State
+  const [sosActive, setSosActive] = useState(false);
+  const [stage, setStage] = useState<Stage>("idle");
+  const [eta, setEta] = useState(0);
+  const [holdProgress, setHoldProgress] = useState(0);
+  const [isHolding, setIsHolding] = useState(false);
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Start Ambulance Animation
-  const startAmbulanceDispatch = () => {
-    setSosState("EN_ROUTE");
-    setRoute([[AMBULANCES[0].lat, AMBULANCES[0].lng], [PATIENT.lat, PATIENT.lng]]);
-    setMovingAmb({ lat: AMBULANCES[0].lat, lng: AMBULANCES[0].lng });
+  // Signal State
+  const [signalJump, setSignalJump] = useState(false);
+  const [signalStates, setSignalStates] = useState([
+    { id: "S1", lat: 16.5062, lng: 80.6480,
+      name: "Benz Circle", color: "red" as "red" | "green" },
+    { id: "S2", lat: 16.5121, lng: 80.6339,
+      name: "Kanaka Durga Flyover", color: "red" as "red" | "green" },
+    { id: "S3", lat: 16.5033, lng: 80.6410,
+      name: "MG Road Junction", color: "red" as "red" | "green" },
+    { id: "S4", lat: 16.5089, lng: 80.6520,
+      name: "Ramavarappadu Ring", color: "red" as "red" | "green" },
+    { id: "S5", lat: 16.4989, lng: 80.6431,
+      name: "Autonagar Signal", color: "red" as "red" | "green" },
+  ]);
 
-    // Activate Green Corridor
-    const updatedSignals = TRAFFIC_SIGNALS.map(signal => ({
-      ...signal,
-      status: "GREEN"
-    }));
+  // Ambulance State
+  const [ambulancePos, setAmbulancePos] = useState({
+    lat: 16.5109, lng: 80.6395, // Start at hospital
+  });
+  const [showResponderAmbulance, setShowResponderAmbulance] = useState(false);
+  const [selectedHospital, setSelectedHospital] = useState(HOSPITALS[3]);
+  const [assignedAmbulanceId, setAssignedAmbulanceId] = useState<string | null>(null);
 
-    // Animate ambulance movement (60 steps)
-    let step = 0;
-    const totalSteps = 60;
-    const dLat = (PATIENT.lat - AMBULANCES[0].lat) / totalSteps;
-    const dLng = (PATIENT.lng - AMBULANCES[0].lng) / totalSteps;
-
-    animRef.current = setInterval(() => {
-      step++;
-      if (step >= totalSteps) {
-        clearInterval(animRef.current!);
-        setMovingAmb({ lat: PATIENT.lat, lng: PATIENT.lng });
-        setSosState("ARRIVED");
-        return;
-      }
-      setMovingAmb({
-        lat: AMBULANCES[0].lat + dLat * step,
-        lng: AMBULANCES[0].lng + dLng * step,
-      });
-    }, 50);
-  };
-
-  const cancelSOS = () => {
-    if (animRef.current) clearInterval(animRef.current);
-    setSosState("IDLE");
-    setCountdown(0);
-    setMovingAmb(null);
-    setRoute(null);
-  };
-
+  // Auth
   useEffect(() => {
-    return () => {
-      if (animRef.current) clearInterval(animRef.current);
-    };
+    login("patient@pravaah360.in", "patient123", "patient");
+    setIsAuthenticated(true);
+  }, [login]);
+
+  // ✅ REAL-TIME GPS Location
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationStatus("denied");
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setLocationStatus("active");
+      },
+      (error) => {
+        console.error("Location error:", error);
+        setLocationStatus("denied");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 3000,
+      }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
+  // ✅ Smart Signal near ambulance
+  useEffect(() => {
+    if (!sosActive) return;
+    const interval = setInterval(() => {
+      setSignalStates((prev) =>
+        prev.map((signal) => {
+          const dist =
+            Math.abs(ambulancePos.lat - signal.lat) +
+            Math.abs(ambulancePos.lng - signal.lng);
+          return { ...signal, color: dist < 0.003 ? "green" : "red" };
+        })
+      );
+    }, 800);
+    return () => clearInterval(interval);
+  }, [sosActive, ambulancePos]);
+
+  // ✅ Signal Jump
+  const activateSignalJump = () => {
+    setSignalJump(true);
+    setSignalStates((prev) =>
+      prev.map((s) => ({ ...s, color: "green" as const }))
+    );
+    setTimeout(() => {
+      setSignalJump(false);
+      if (!sosActive) {
+        setSignalStates((prev) =>
+          prev.map((s) => ({ ...s, color: "red" as const }))
+        );
+      }
+    }, 30000);
+  };
+
+  // ✅ Hold SOS Button
+  const startHold = () => {
+    if (sosActive) return;
+    setIsHolding(true);
+    let progress = 0;
+    holdTimerRef.current = setInterval(() => {
+      progress += 4;
+      setHoldProgress(progress);
+      if (progress >= 100) {
+        clearInterval(holdTimerRef.current!);
+        setIsHolding(false);
+        setHoldProgress(0);
+        triggerSOS();
+      }
+    }, 120);
+  };
+
+  const stopHold = () => {
+    if (holdTimerRef.current) clearInterval(holdTimerRef.current);
+    setIsHolding(false);
+    setHoldProgress(0);
+  };
+
+  // ✅ Calculate distance
+  const calculateDistance = (a: any, b: any) => {
+    return Math.sqrt(
+      Math.pow(a.lat - b.lat, 2) + Math.pow(a.lng - b.lng, 2)
+    );
+  };
+
+  // ✅ Trigger SOS - Find nearest ambulance
+  const triggerSOS = () => {
+    // Find nearest available ambulance
+    let nearestAmb = INITIAL_AMBULANCES[0];
+    let minDist = calculateDistance(userLocation, INITIAL_AMBULANCES[0]);
+
+    INITIAL_AMBULANCES.forEach((amb) => {
+      const dist = calculateDistance(userLocation, amb);
+      if (dist < minDist) {
+        minDist = dist;
+        nearestAmb = amb;
+      }
+    });
+
+    setAssignedAmbulanceId(nearestAmb.id);
+    setSosActive(true);
+    setStage("dispatched");
+    setEta(8);
+    setShowResponderAmbulance(true);
+    setAmbulancePos({ lat: nearestAmb.lat, lng: nearestAmb.lng });
+    activateSignalJump();
+    animateAmbulanceToUser(nearestAmb);
+  };
+
+  // ✅ Animate Ambulance from Hospital to User
+  const animateAmbulanceToUser = (startAmb: typeof INITIAL_AMBULANCES[0]) => {
+    const start = { lat: startAmb.lat, lng: startAmb.lng };
+    const end = userLocation;
+    const steps = 40;
+    let step = 0;
+
+    const interval = setInterval(() => {
+      step++;
+      const p = step / steps;
+      setAmbulancePos({
+        lat: start.lat + (end.lat - start.lat) * p,
+        lng: start.lng + (end.lng - start.lng) * p,
+      });
+      setEta(Math.max(0, Math.round(8 * (1 - p))));
+
+      if (step >= steps) {
+        clearInterval(interval);
+        setStage("arrived");
+        setEta(0);
+        setTimeout(() => {
+          setStage("picked");
+          setTimeout(() => animateToHospital(), 2000);
+        }, 2000);
+      }
+    }, 300);
+  };
+
+  // ✅ Animate to Hospital
+  const animateToHospital = () => {
+    setStage("hospital");
+    const start = { ...ambulancePos };
+    const end = { lat: selectedHospital.lat, lng: selectedHospital.lng };
+    const steps = 30;
+    let step = 0;
+    setEta(6);
+
+    const interval = setInterval(() => {
+      step++;
+      const p = step / steps;
+      setAmbulancePos({
+        lat: start.lat + (end.lat - start.lat) * p,
+        lng: start.lng + (end.lng - start.lng) * p,
+      });
+      setEta(Math.max(0, Math.round(6 * (1 - p))));
+
+      if (step >= steps) {
+        clearInterval(interval);
+        setTimeout(() => {
+          alert(
+            `✅ Emergency Completed!\n\nPatient safely delivered to ${selectedHospital.name}\n\nDriver: ${ASSIGNED_AMBULANCE.driver.name}\nVehicle: ${ASSIGNED_AMBULANCE.vehicle.number}\n\nThank you for using Pravaah 360!`
+          );
+          setSosActive(false);
+          setStage("idle");
+          setShowResponderAmbulance(false);
+          setAssignedAmbulanceId(null);
+          setSignalStates((prev) =>
+            prev.map((s) => ({ ...s, color: "red" as const }))
+          );
+        }, 1000);
+      }
+    }, 300);
+  };
+
+  // ✅ Logout function
+  const handleBackToLogin = () => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      console.error("Error clearing storage:", e);
+    }
+    window.location.href = "/login";
+  };
+
+  // Map data
+  const mapAmbulances = [
+    ...INITIAL_AMBULANCES.filter((a) => a.id !== assignedAmbulanceId),
+    ...(showResponderAmbulance
+      ? [{ id: "AMB-SOS", lat: ambulancePos.lat,
+          lng: ambulancePos.lng, status: "Responding to SOS" }]
+      : []),
+  ];
+
+  const stageConfig = {
+    idle: {
+      bg: "bg-blue-900/40",
+      border: "border-blue-700",
+      text: "Ready for Emergency",
+      icon: <Shield size={16} className="text-blue-400" />,
+    },
+    dispatched: {
+      bg: "bg-red-900/40",
+      border: "border-red-500",
+      text: `🚑 Ambulance Dispatched · ETA ${eta} min`,
+      icon: <Truck size={16} className="text-red-400" />,
+    },
+    arrived: {
+      bg: "bg-yellow-900/40",
+      border: "border-yellow-500",
+      text: "🚑 Ambulance Has Arrived!",
+      icon: <CheckCircle size={16} className="text-yellow-400" />,
+    },
+    picked: {
+      bg: "bg-blue-900/40",
+      border: "border-blue-500",
+      text: "✅ Patient Picked Up",
+      icon: <Users size={16} className="text-blue-400" />,
+    },
+    hospital: {
+      bg: "bg-green-900/40",
+      border: "border-green-500",
+      text: `🏥 En Route to ${selectedHospital.name} · ETA ${eta} min`,
+      icon: <Hospital size={16} className="text-green-400" />,
+    },
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="h-screen bg-slate-950 flex items-center
+      justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-400
+          border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-blue-200 font-medium">
+            Loading Emergency Services...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen liquid-bg text-white">
-      {/* Header */}
-      <header className="glass-dark sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center glow-red">
-            <AlertTriangle className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">LifeLane</h1>
-            <p className="text-xs text-white/60">Emergency Response</p>
+    <div className="h-screen flex flex-col overflow-hidden bg-slate-950 text-white">
+      {/* ✅ HEADER */}
+      <div className="flex-shrink-0 px-6 py-3 flex items-center justify-between
+      border-b border-white/10 bg-slate-900/70 backdrop-blur-xl">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => (window.location.href = "/login")}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg
+            text-sm font-medium bg-blue-500/15 border border-blue-400/30
+            text-blue-200 hover:bg-blue-500/25 transition"
+          >
+            <ArrowLeft size={14} />
+            Back
+          </button>
+
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center
+            justify-center bg-gradient-to-br from-red-500 to-orange-500
+            shadow-lg shadow-red-500/30">
+              <Siren size={20} className="text-white" />
+            </div>
+            <div>
+              <h1 className="font-black text-white text-lg leading-none">
+                Pravaah Emergency
+              </h1>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                  locationStatus === "active" ? "bg-green-400" :
+                  locationStatus === "detecting" ? "bg-yellow-400" :
+                  "bg-red-400"
+                }`} />
+                <p className="text-xs text-blue-300">
+                  {locationStatus === "active" ? "Live GPS Active" :
+                   locationStatus === "detecting" ? "Detecting Location..." :
+                   "Using Vijayawada Default"}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Location Display */}
+        <div className="flex items-center gap-2 px-4 py-2 rounded-xl
+        bg-blue-500/10 border border-blue-400/20">
+          <Navigation size={14} className="text-blue-400" />
+          <span className="text-xs text-blue-300">
+            {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
+          </span>
+        </div>
+
+        {/* Right Actions */}
         <div className="flex items-center gap-3">
-          {sosState !== "IDLE" && (
-            <div className="px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 border border-green-500/50 text-green-300 flex items-center gap-2">
-              <Zap className="w-3.5 h-3.5" /> GREEN CORRIDOR ACTIVE
+          {sosActive && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full
+            bg-red-600 animate-pulse">
+              <Radio size={12} className="text-white" />
+              <span className="text-xs font-bold text-white">LIVE SOS</span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-xs text-white/70">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Connected
+          <button
+            onClick={() => window.open("tel:108")}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl
+            font-bold text-sm text-white bg-gradient-to-r
+            from-red-600 to-red-700 shadow-lg hover:from-red-700 hover:to-red-800"
+          >
+            <Phone size={14} />
+            Call 108
+          </button>
+          <button
+            onClick={handleBackToLogin}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl
+            bg-gradient-to-r from-orange-500 to-red-500 text-white
+            font-semibold shadow-lg hover:scale-105 transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Logout</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ✅ MAIN BODY */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* LEFT PANEL */}
+        <div className="w-72 flex flex-col overflow-y-auto flex-shrink-0
+        border-r border-white/10 bg-slate-900/70">
+          {/* Status Card */}
+          <div className="p-4 border-b border-white/10">
+            <div className={`rounded-xl p-4 border ${stageConfig[stage].bg}
+            ${stageConfig[stage].border}`}>
+              <div className="flex items-center gap-2 mb-2">
+                {stageConfig[stage].icon}
+                <span className="text-xs font-bold uppercase tracking-wider
+                text-blue-300">Status</span>
+              </div>
+              <p className="text-sm font-bold text-white">
+                {stageConfig[stage].text}
+              </p>
+              {eta > 0 && (
+                <div className="flex items-center gap-2 mt-3 pt-3
+                border-t border-white/10">
+                  <Clock size={14} className="text-yellow-400" />
+                  <span className="text-3xl font-black text-yellow-400">
+                    {eta}
+                  </span>
+                  <span className="text-blue-300 text-sm">min ETA</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SOS HOLD BUTTON */}
+          <div className="p-5 border-b border-white/10 flex flex-col
+          items-center gap-3">
+            <div className="relative">
+              <button
+                onMouseDown={startHold}
+                onMouseUp={stopHold}
+                onMouseLeave={stopHold}
+                onTouchStart={startHold}
+                onTouchEnd={stopHold}
+                disabled={sosActive}
+                className="w-32 h-32 rounded-full font-black text-white
+                flex flex-col items-center justify-center gap-2 transition-all
+                select-none relative overflow-hidden"
+                style={{
+                  background: sosActive
+                    ? "rgba(75, 85, 99, 0.5)"
+                    : "linear-gradient(135deg, #dc2626, #991b1b)",
+                  boxShadow: sosActive
+                    ? "none"
+                    : "0 0 30px rgba(220,38,38,0.5), 0 0 60px rgba(220,38,38,0.2)",
+                  cursor: sosActive ? "not-allowed" : "pointer",
+                }}
+              >
+                {isHolding && (
+                  <svg className="absolute inset-0 w-full h-full -rotate-90"
+                  viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="46" fill="none"
+                      stroke="rgba(255,255,255,0.9)" strokeWidth="5"
+                      strokeDasharray={`${holdProgress * 2.89} 289`}
+                      strokeLinecap="round" />
+                  </svg>
+                )}
+                <AlertTriangle size={30} />
+                <span className="text-xs font-black tracking-wide">
+                  {sosActive ? "ACTIVE" : "HOLD SOS"}
+                </span>
+              </button>
+
+              {sosActive && (
+                <div className="absolute inset-0 rounded-full border-4
+                border-red-500 animate-ping opacity-40" />
+              )}
+            </div>
+            <p className="text-xs text-blue-400 text-center">
+              Hold 3 seconds to activate emergency
+            </p>
+          </div>
+
+          {/* SIGNAL JUMP */}
+          <div className="p-4 border-b border-white/10">
+            <button
+              onClick={activateSignalJump}
+              className="w-full py-3 rounded-xl font-bold text-sm
+              flex items-center justify-center gap-2 transition-all text-white"
+              style={{
+                background: signalJump
+                  ? "linear-gradient(135deg, #16a34a, #15803d)"
+                  : "linear-gradient(135deg, #d97706, #b45309)",
+                boxShadow: "0 4px 15px rgba(217,119,6,0.4)",
+              }}
+            >
+              <Zap size={16} />
+              {signalJump ? "✅ All Signals GREEN!" : "⚡ Signal Jump Mode"}
+            </button>
+            <p className="text-xs text-blue-400/70 mt-2 text-center">
+              Clears all traffic signals on ambulance route
+            </p>
+          </div>
+
+          {/* TRAFFIC SIGNALS */}
+          <div className="p-4 border-b border-white/10">
+            <h3 className="text-xs font-bold text-blue-400 uppercase
+            tracking-wider mb-3 flex items-center gap-2">
+              <Activity size={12} />
+              Traffic Signals
+            </h3>
+            <div className="space-y-2">
+              {signalStates.map((signal) => (
+                <div key={signal.id}
+                  className="flex items-center justify-between rounded-lg
+                  px-3 py-2 bg-slate-800/40 border border-white/10">
+                  <span className="text-xs text-blue-200">{signal.name}</span>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full animate-pulse ${
+                      signal.color === "green" ? "bg-green-400" : "bg-red-400"
+                    }`} style={{
+                      boxShadow: signal.color === "green"
+                        ? "0 0 8px #4ade80" : "0 0 8px #f87171",
+                    }} />
+                    <span className={`text-xs font-bold ${
+                      signal.color === "green" ? "text-green-400" : "text-red-400"
+                    }`}>{signal.color.toUpperCase()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ASSIGNED AMBULANCE */}
+          {sosActive && (
+            <div className="p-4 border-b border-white/10">
+              <h3 className="text-xs font-bold text-blue-400 uppercase
+              tracking-wider mb-3 flex items-center gap-2">
+                <Truck size={12} />
+                Assigned Ambulance
+              </h3>
+              <div className="rounded-xl p-3 space-y-2 bg-slate-800/40
+              border border-white/10">
+                {[
+                  ["Vehicle", ASSIGNED_AMBULANCE.vehicle.number],
+                  ["Type", ASSIGNED_AMBULANCE.vehicle.type],
+                  ["Driver", ASSIGNED_AMBULANCE.driver.name],
+                  ["Phone", ASSIGNED_AMBULANCE.driver.phone],
+                  ["Experience", ASSIGNED_AMBULANCE.driver.experience],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex justify-between items-center">
+                    <span className="text-xs text-blue-400">{label}</span>
+                    <span className="text-xs text-white font-medium">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* QUICK ACTIONS */}
+          <div className="p-4 grid grid-cols-2 gap-2">
+            {[
+              { label: "Call 108", icon: Phone, color: "#f87171",
+                action: () => window.open("tel:108") },
+              { label: "Police 100", icon: Shield, color: "#60a5fa",
+                action: () => window.open("tel:100") },
+              { label: "Fire 101", icon: Siren, color: "#fb923c",
+                action: () => window.open("tel:101") },
+              { label: "Share GPS", icon: MapPin, color: "#4ade80",
+                action: () => {
+                  navigator.clipboard.writeText(
+                    `https://maps.google.com?q=${userLocation.lat},${userLocation.lng}`
+                  );
+                  alert("📍 Location copied to clipboard!");
+                }},
+            ].map(({ label, icon: Icon, color, action }) => (
+              <button key={label} onClick={action}
+                className="flex flex-col items-center gap-1.5 rounded-xl
+                p-3 transition-all hover:scale-105 bg-slate-800/40
+                border border-white/10">
+                <Icon size={20} style={{ color }} />
+                <span className="text-xs text-blue-200 font-medium">{label}</span>
+              </button>
+            ))}
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* LEFT COLUMN */}
-        <section className="lg:col-span-1 space-y-6">
-          {/* SOS Button Card */}
-          <div className="glass p-8 flex flex-col items-center text-center">
-            <h2 className="text-lg font-semibold mb-2">Emergency SOS</h2>
-            <p className="text-sm text-white/60 mb-8">Tap to dispatch nearest ambulance</p>
+        {/* CENTER MAP */}
+        <div className="flex-1 relative">
+          <LiveMap
+            ambulances={mapAmbulances}
+            hospitals={HOSPITALS}
+            sosVehicles={[]}
+            userLocation={userLocation}
+            showUserLocation={true}
+            emergencies={[]}
+            center={[userLocation.lat, userLocation.lng]}
+            zoom={13}
+          />
 
-            <button
-              onClick={handleSOS}
-              disabled={sosState !== "IDLE"}
-              className={`relative w-48 h-48 rounded-full font-bold text-2xl tracking-widest transition-all duration-300 ${
-                sosState !== "IDLE"
-                  ? "bg-gradient-to-br from-red-700 to-red-900 scale-95 border-2 border-red-500/50"
-                  : "bg-gradient-to-br from-red-500 to-red-700 hover:scale-105 active:scale-95 glow-red"
-              }`}
-            >
-              {sosState === "COUNTDOWN" ? (
-                <div className="flex flex-col items-center">
-                  <span className="text-5xl font-black">{countdown}</span>
-                  <span className="text-xs mt-2 font-normal opacity-80">DISPATCHING...</span>
-                </div>
-              ) : sosState !== "IDLE" ? (
-                <div className="flex flex-col items-center">
-                  <span className="text-4xl">🚑</span>
-                  <span className="text-xs mt-2 font-bold text-red-200">
-                    {sosState === "EN_ROUTE" && "EN ROUTE"}
-                    {sosState === "ARRIVED" && "ARRIVED"}
+          {sosActive && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2
+            flex items-center gap-3 px-6 py-3 rounded-2xl
+            bg-slate-900/95 backdrop-blur border border-red-700 shadow-xl">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-ping" />
+              <span className="text-white font-bold text-sm">
+                {stage === "dispatched" && `🚑 Ambulance En Route · ETA ${eta} min`}
+                {stage === "arrived" && "🚑 Ambulance Has Arrived!"}
+                {stage === "picked" && "✅ Patient Picked Up Successfully"}
+                {stage === "hospital" && `🏥 Heading to ${selectedHospital.name}`}
+              </span>
+            </div>
+          )}
+
+          {signalJump && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2
+            flex items-center gap-3 px-6 py-3 rounded-2xl
+            bg-green-900/95 backdrop-blur border border-green-500 shadow-xl">
+              <Zap size={16} className="text-green-400" />
+              <span className="text-green-300 font-bold text-sm">
+                ⚡ Signal Jump Active — All Signals Cleared GREEN
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT PANEL - HOSPITALS */}
+        <div className="w-64 flex flex-col overflow-hidden flex-shrink-0
+        border-l border-white/10 bg-slate-900/70">
+          <div className="p-4 border-b border-white/10 flex-shrink-0">
+            <h2 className="font-bold text-white flex items-center gap-2 text-sm">
+              <Hospital size={16} className="text-blue-400" />
+              Nearby Hospitals
+            </h2>
+            <p className="text-xs text-blue-400/70 mt-1">
+              {HOSPITALS.length} hospitals in Vijayawada
+            </p>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {HOSPITALS.map((hospital) => (
+              <button key={hospital.id}
+                onClick={() => setSelectedHospital(hospital)}
+                className="w-full text-left rounded-xl p-3 transition-all text-xs"
+                style={{
+                  background: selectedHospital.id === hospital.id
+                    ? "rgba(29, 78, 216, 0.3)"
+                    : "rgba(30, 58, 100, 0.3)",
+                  border: selectedHospital.id === hospital.id
+                    ? "1px solid rgba(59, 130, 246, 0.6)"
+                    : "1px solid rgba(59, 130, 246, 0.15)",
+                }}
+              >
+                <p className="font-bold text-white leading-tight mb-1">
+                  {hospital.name}
+                </p>
+                <span className="inline-block px-1.5 py-0.5 rounded text-xs mb-2"
+                  style={{
+                    background: hospital.type === "Government"
+                      ? "rgba(29, 78, 216, 0.4)" : "rgba(124, 58, 237, 0.4)",
+                    color: hospital.type === "Government"
+                      ? "#93c5fd" : "#c4b5fd",
+                  }}
+                >{hospital.type}</span>
+                <div className="flex items-center justify-between text-blue-300/70">
+                  <span className="flex items-center gap-1">
+                    <MapPin size={9} />{hospital.distance}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock size={9} />{hospital.time}
+                  </span>
+                  <span className="text-green-400 font-bold">
+                    {hospital.beds} beds
                   </span>
                 </div>
-              ) : (
-                <>
-                  <span className="absolute inset-0 rounded-full bg-red-500/40 animate-ping" />
-                  <span className="relative">SOS</span>
-                </>
-              )}
-            </button>
-
-            {sosState !== "IDLE" && (
-              <button
-                onClick={cancelSOS}
-                className="mt-6 px-6 py-2 rounded-full text-sm border border-white/20 hover:bg-white/10 transition"
-              >
-                Cancel Request
               </button>
-            )}
+            ))}
           </div>
-
-          {/* Quick Actions */}
-          <div className="glass p-6">
-            <h3 className="text-sm font-semibold text-white/80 mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-3 gap-3">
-              <QuickAction icon={Heart} label="Medical" color="from-red-500 to-pink-600" />
-              <QuickAction icon={Shield} label="Police" color="from-blue-500 to-indigo-600" />
-              <QuickAction icon={Flame} label="Fire" color="from-orange-500 to-red-600" />
-            </div>
-          </div>
-
-          {/* User Profile */}
-          <div className="glass p-6">
-            <h3 className="text-sm font-semibold text-white/80 mb-4">Your Profile</h3>
-            <div className="space-y-3 text-sm">
-              <InfoRow icon={User} label="Name" value="Chaitanya Sai" />
-              <InfoRow icon={Phone} label="Phone" value="+91 98XXX XXXXX" />
-              <InfoRow icon={MapPin} label="Location" value="New Delhi, India" />
-              <InfoRow icon={Heart} label="Blood Group" value="O+" />
-            </div>
-          </div>
-        </section>
-
-        {/* RIGHT COLUMN - MAP */}
-        <section className="lg:col-span-2 space-y-6">
-          <div className="glass relative overflow-hidden rounded-[20px]">
-            <div className="absolute top-4 left-4 z-[1000] glass px-4 py-2 flex items-center gap-2 text-xs pointer-events-none">
-              <Navigation className="w-4 h-4 text-emerald-400" />
-              Live Map
-            </div>
-            <div style={{ height: "600px", width: "100%" }}>
-              <LiveMap
-                hospitals={HOSPITALS}
-                ambulances={sosState === "IDLE" ? AMBULANCES : []}
-                trafficSignals={sosState !== "IDLE" ?
-                  TRAFFIC_SIGNALS.map(s => ({...s, status: "GREEN"})) :
-                  TRAFFIC_SIGNALS}
-                movingAmbulance={movingAmb}
-                pulseLocation={sosState !== "IDLE" ? PATIENT : null}
-                route={route}
-                center={[28.6280, 77.2180]}
-                zoom={13}
-              />
-            </div>
-          </div>
-
-          {/* Status Bar */}
-          <div className="glass p-6 grid grid-cols-3 gap-4 text-center">
-            <StatusItem icon={Clock} label="Avg Response" value="3.8 min" color="text-emerald-400" />
-            <StatusItem icon={Shield} label="Units Nearby" value="8 Active" color="text-blue-400" />
-            <StatusItem icon={Heart} label="Success Rate" value="98.7%" color="text-pink-400" />
-          </div>
-        </section>
-      </main>
-    </div>
-  );
-}
-
-// ===== SUB-COMPONENTS =====
-function QuickAction({ icon: Icon, label, color }: { icon: any; label: string; color: string }) {
-  return (
-    <button className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition group">
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center group-hover:scale-110 transition`}>
-        <Icon className="w-6 h-6 text-white" />
-      </div>
-      <span className="text-xs text-white/80">{label}</span>
-    </button>
-  );
-}
-
-function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-        <Icon className="w-4 h-4 text-white/70" />
-      </div>
-      <div className="flex-1 flex justify-between">
-        <span className="text-white/60">{label}</span>
-        <span className="text-white font-medium">{value}</span>
+        </div>
       </div>
     </div>
   );
 }
 
-function StatusItem({ icon: Icon, label, value, color }: { icon: any; label: string; value: string; color: string }) {
+export default function EmergencyPage() {
   return (
-    <div className="flex flex-col items-center gap-1">
-      <Icon className={`w-5 h-5 ${color}`} />
-      <span className={`text-2xl font-bold ${color}`}>{value}</span>
-      <span className="text-xs text-white/60">{label}</span>
-    </div>
+    <AppProvider>
+      <EmergencyPageContent />
+    </AppProvider>
   );
 }
