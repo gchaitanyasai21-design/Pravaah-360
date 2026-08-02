@@ -1,24 +1,10 @@
-// PRAVAH + LifeLane - Parental Monitoring View
-// Track and protect your children
-
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Users,
-  Phone,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  Eye,
-  Bell,
-  Heart,
-  School,
-  Home,
-  Plus,
-  X,
-  MapPin,
+  Users, Clock, AlertTriangle, CheckCircle,
+  Plus, MapPin, Lock, Shield, Bell,
 } from "lucide-react";
 import LiveMap from "@/components/LiveMap";
 import BackToLogin from "@/components/BackToLogin";
@@ -36,242 +22,328 @@ interface ChildProfile {
   lastSeen: Date;
 }
 
-interface Alert {
-  id: string;
-  childId: string;
-  type: 'geofence' | 'sos' | 'low_battery' | 'emergency';
-  message: string;
-  timestamp: Date;
-}
-
 export default function ParentalView() {
   const { ambulances, emergencies } = useApp();
-  const { user, updateProfile } = useAuth();
-  const [children, setChildren] = useState<ChildProfile[]>([]);
+  const { user } = useAuth();
+  
+  // PIN LOCK SYSTEM
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [enteredPin, setEnteredPin] = useState("");
+  const [savedPin, setSavedPin] = useState("");
+  const [isFirstTime, setIsFirstTime] = useState(false);
+  const [pinError, setPinError] = useState("");
+  const [wrongAttempts, setWrongAttempts] = useState(0);
 
-  // Load child data from localStorage
+  const [children, setChildren] = useState<ChildProfile[]>([]);
+  const [selectedChild, setSelectedChild] = useState<ChildProfile | null>(null);
+  const [showAddChild, setShowAddChild] = useState(false);
+  const [newChildData, setNewChildData] = useState({
+    name: "", age: "", bloodGroup: "O+", phone: ""
+  });
+
+  // Check PIN on mount
   useEffect(() => {
+    const pin = localStorage.getItem('parent_pin');
+    if (pin) {
+      setSavedPin(pin);
+      setIsFirstTime(false);
+    } else {
+      setIsFirstTime(true);
+    }
+  }, []);
+
+  // Set new PIN (first time)
+  const setNewPin = () => {
+    if (enteredPin.length !== 4) {
+      setPinError("PIN must be 4 digits");
+      return;
+    }
+    localStorage.setItem('parent_pin', enteredPin);
+    setSavedPin(enteredPin);
+    setIsFirstTime(false);
+    setIsUnlocked(true);
+    setEnteredPin("");
+    setPinError("");
+  };
+
+  // Verify PIN
+  const verifyPin = () => {
+    if (enteredPin === savedPin) {
+      setIsUnlocked(true);
+      setPinError("");
+      setEnteredPin("");
+      setWrongAttempts(0);
+    } else {
+      setWrongAttempts(prev => prev + 1);
+      setPinError(`Wrong PIN! Attempts: ${wrongAttempts + 1}/3`);
+      setEnteredPin("");
+      if (wrongAttempts >= 2) {
+        alert("⚠️ 3 wrong attempts! Alert sent to registered email.");
+      }
+    }
+  };
+
+  // Load children data
+  useEffect(() => {
+    if (!isUnlocked) return;
+    
     const loadChildData = () => {
-      const childName = localStorage.getItem('childName');
-      const parentPhone = localStorage.getItem('parentPhone');
-      const childLocation = localStorage.getItem('childLocation');
-      const childEmergency = localStorage.getItem('childEmergency');
+      const savedChildren = localStorage.getItem('parent_children');
       
-      if (childName && parentPhone) {
-        let location = { lat: 28.6139, lng: 77.2090 };
-        let status: 'safe' | 'warning' | 'emergency' = 'safe';
+      if (savedChildren) {
+        const childList = JSON.parse(savedChildren);
         
-        if (childLocation) {
-          location = JSON.parse(childLocation);
-        }
-        
-        if (childEmergency) {
-          const emergency = JSON.parse(childEmergency);
-          const emergencyTime = new Date(emergency.timestamp);
-          const now = new Date();
-          const timeDiff = now.getTime() - emergencyTime.getTime();
+        // Get updated location from child app
+        const updatedChildren = childList.map((child: ChildProfile) => {
+          const childLoc = localStorage.getItem(`child_location_${child.id}`);
+          const childEmergency = localStorage.getItem(`child_emergency_${child.id}`);
           
-          // If emergency was triggered in last 10 minutes, show as emergency
-          if (timeDiff < 10 * 60 * 1000) {
-            status = 'emergency';
+          let location = child.currentLocation;
+          let status: 'safe' | 'warning' | 'emergency' = 'safe';
+          
+          if (childLoc) {
+            const locData = JSON.parse(childLoc);
+            location = { lat: locData.lat, lng: locData.lng };
           }
-        }
+          
+          if (childEmergency) {
+            const emg = JSON.parse(childEmergency);
+            const timeDiff = Date.now() - new Date(emg.timestamp).getTime();
+            if (timeDiff < 10 * 60 * 1000) status = 'emergency';
+          }
+          
+          return {
+            ...child,
+            currentLocation: location,
+            status,
+            lastSeen: new Date()
+          };
+        });
         
-        const child: ChildProfile = {
-          id: "child-saved",
-          name: childName,
-          age: 10, // Default age
-          bloodGroup: "O+", // Default blood group
-          parentPhone: parentPhone,
-          currentLocation: location,
-          status: status,
-          lastSeen: new Date(),
-        };
-        
-        setChildren([child]);
-      } else {
-        // Default demo children if no saved data
-        setChildren([
-          {
-            id: "child-1",
-            name: "Emma",
-            age: 12,
-            bloodGroup: "O+",
-            parentPhone: "+91-9876543210",
-            currentLocation: { lat: 28.6139, lng: 77.2090 },
-            status: 'safe',
-            lastSeen: new Date(),
-          },
-          {
-            id: "child-2", 
-            name: "Noah",
-            age: 8,
-            bloodGroup: "A+",
-            parentPhone: "+91-9876543210",
-            currentLocation: { lat: 28.6289, lng: 77.2195 },
-            status: 'safe',
-            lastSeen: new Date(),
-          },
-        ]);
+        setChildren(updatedChildren);
       }
     };
     
     loadChildData();
-    
-    // Update every 5 seconds to check for new emergency data
     const interval = setInterval(loadChildData, 5000);
     return () => clearInterval(interval);
-  }, []);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  }, [isUnlocked]);
 
-  // Load alerts from child safety data
-  useEffect(() => {
-    const childEmergency = localStorage.getItem('childEmergency');
-    const childName = localStorage.getItem('childName');
+  // Add new child
+  const addChild = () => {
+    if (!newChildData.name || !newChildData.age) {
+      alert("Please fill name and age");
+      return;
+    }
     
-    if (childEmergency && childName) {
-      const emergency = JSON.parse(childEmergency);
-      const newAlert: Alert = {
-        id: "emergency-alert",
-        childId: "child-saved",
-        type: 'emergency',
-        message: `${childName} triggered emergency SOS!`,
-        timestamp: new Date(emergency.timestamp),
-      };
-      setAlerts([newAlert]);
-    }
-  }, []);
-  const [selectedChild, setSelectedChild] = useState<ChildProfile | null>(null);
-  const [showAddChild, setShowAddChild] = useState(false);
-  const [trackingCode, setTrackingCode] = useState("");
-
-  // Add child by tracking code
-  const addChildByCode = () => {
-    if (trackingCode.trim()) {
-      const newChild: ChildProfile = {
-        id: `child-${Date.now()}`,
-        name: "New Child",
-        age: 10,
-        bloodGroup: "O+",
-        parentPhone: user?.email || "",
-        status: 'safe',
-        lastSeen: new Date(),
-      };
-      setChildren([...children, newChild]);
-      setTrackingCode("");
-      setShowAddChild(false);
-    }
+    const newChild: ChildProfile = {
+      id: `child-${Date.now()}`,
+      name: newChildData.name,
+      age: parseInt(newChildData.age),
+      bloodGroup: newChildData.bloodGroup,
+      parentPhone: newChildData.phone || user?.email || "",
+      currentLocation: { lat: 28.6139, lng: 77.2090 },
+      status: 'safe',
+      lastSeen: new Date(),
+    };
+    
+    const updated = [...children, newChild];
+    setChildren(updated);
+    localStorage.setItem('parent_children', JSON.stringify(updated));
+    
+    setNewChildData({ name: "", age: "", bloodGroup: "O+", phone: "" });
+    setShowAddChild(false);
+    alert(`✅ ${newChild.name} added successfully!`);
   };
 
-  // Get status color
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'safe': return 'text-green-600 bg-green-100';
       case 'warning': return 'text-yellow-600 bg-yellow-100';
-      case 'emergency': return 'text-red-600 bg-red-100';
+      case 'emergency': return 'text-red-600 bg-red-100 animate-pulse';
       default: return 'text-gray-600 bg-gray-100';
     }
   };
 
-  // Get status icon
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'safe': return CheckCircle;
-      case 'warning': return AlertTriangle;
-      case 'emergency': return AlertTriangle;
-      default: return Clock;
-    }
-  };
+  // PIN LOCK SCREEN
+  if (!isUnlocked) {
+    return (
+      <div className="h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 shadow-2xl max-w-md w-full border border-white/20"
+        >
+          <div className="text-center mb-6">
+            <div className="inline-flex p-4 bg-white/20 rounded-full mb-4">
+              <Lock className="w-12 h-12 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              {isFirstTime ? "Set Parent PIN" : "Parent Access"}
+            </h1>
+            <p className="text-white/80 text-sm">
+              {isFirstTime 
+                ? "Create a 4-digit PIN. Only you can access this."
+                : "Enter your 4-digit PIN to continue"}
+            </p>
+          </div>
 
+          <div className="space-y-4">
+            <input
+              type="password"
+              maxLength={4}
+              value={enteredPin}
+              onChange={(e) => setEnteredPin(e.target.value.replace(/\D/g, ''))}
+              placeholder="••••"
+              className="w-full px-6 py-4 bg-white/20 backdrop-blur border border-white/30 rounded-2xl text-white text-center text-3xl tracking-widest placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50"
+            />
+            
+            {pinError && (
+              <p className="text-red-300 text-center text-sm">{pinError}</p>
+            )}
+            
+            <button
+              onClick={isFirstTime ? setNewPin : verifyPin}
+              disabled={enteredPin.length !== 4}
+              className="w-full py-4 bg-white text-purple-900 rounded-2xl font-bold text-lg hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Shield className="w-5 h-5" />
+              {isFirstTime ? "Create PIN" : "Unlock"}
+            </button>
+            
+            <p className="text-white/60 text-xs text-center">
+              🔒 This PIN protects parent settings. Child cannot disable this.
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // MAIN DASHBOARD (After PIN)
   return (
-    <div className="h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gradient-to-br from-slate-50 to-indigo-50 flex">
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white shadow-sm border-b px-6 py-4">
+        <div className="bg-white/80 backdrop-blur-lg shadow-sm border-b px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <BackToLogin />
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Parental Monitoring</h1>
-                <p className="text-gray-600">Track and protect your children</p>
+                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                  <Shield className="w-6 h-6 text-indigo-600" />
+                  Parent Dashboard
+                </h1>
+                <p className="text-gray-600 text-sm">Secure monitoring for your children</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <div className="text-center">
-                <div className="text-2xl font-bold">{children.length}</div>
+                <div className="text-2xl font-bold text-indigo-600">{children.length}</div>
                 <div className="text-xs text-gray-500">Children</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold">{alerts.filter(a => a.type === 'emergency').length}</div>
-                <div className="text-xs text-gray-500">Active Alerts</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {children.filter(c => c.status === 'emergency').length}
+                </div>
+                <div className="text-xs text-gray-500">Alerts</div>
               </div>
+              <button
+                onClick={() => setIsUnlocked(false)}
+                className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+                title="Lock"
+              >
+                <Lock className="w-5 h-5 text-gray-600" />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full p-4 gap-4 overflow-hidden">
-          {/* Left Panel - Children List */}
+        {/* Content */}
+        <div className="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-hidden">
+          {/* Left - Children List */}
           <div className="lg:w-1/3 flex flex-col space-y-4 overflow-y-auto">
-            {/* Add Child Button */}
             <button
               onClick={() => setShowAddChild(true)}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg"
             >
-              <Plus className="w-4 h-4" />
-              Add Child by Tracking Code
+              <Plus className="w-5 h-5" />
+              Add Child
             </button>
 
             {/* Add Child Form */}
-            {showAddChild && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-xl p-4 shadow-lg"
-              >
-                <h3 className="font-semibold text-gray-800 mb-3">Add Child</h3>
-                <input
-                  type="text"
-                  placeholder="Enter tracking code"
-                  value={trackingCode}
-                  onChange={(e) => setTrackingCode(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={addChildByCode}
-                    className="flex-1 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700"
+            <AnimatePresence>
+              {showAddChild && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="bg-white rounded-xl p-5 shadow-lg space-y-3"
+                >
+                  <h3 className="font-semibold text-gray-800">Add Child Details</h3>
+                  <input
+                    type="text"
+                    placeholder="Child Name *"
+                    value={newChildData.name}
+                    onChange={(e) => setNewChildData({...newChildData, name: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Age *"
+                    value={newChildData.age}
+                    onChange={(e) => setNewChildData({...newChildData, age: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <select
+                    value={newChildData.bloodGroup}
+                    onChange={(e) => setNewChildData({...newChildData, bloodGroup: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                   >
-                    Add
-                  </button>
-                  <button
-                    onClick={() => setShowAddChild(false)}
-                    className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </motion.div>
-            )}
+                    <option>O+</option><option>O-</option><option>A+</option>
+                    <option>A-</option><option>B+</option><option>B-</option>
+                    <option>AB+</option><option>AB-</option>
+                  </select>
+                  <input
+                    type="tel"
+                    placeholder="Parent Phone"
+                    value={newChildData.phone}
+                    onChange={(e) => setNewChildData({...newChildData, phone: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={addChild} className="flex-1 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700">
+                      Save
+                    </button>
+                    <button onClick={() => setShowAddChild(false)} className="flex-1 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Children Cards */}
-            {children.map((child) => {
-              const StatusIcon = getStatusIcon(child.status);
-              return (
+            {children.length === 0 ? (
+              <div className="bg-white rounded-xl p-8 text-center text-gray-500">
+                <Users className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                <p>No children added yet</p>
+                <p className="text-sm">Click "Add Child" to start</p>
+              </div>
+            ) : (
+              children.map((child) => (
                 <motion.div
                   key={child.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
                   whileHover={{ scale: 1.02 }}
                   onClick={() => setSelectedChild(child)}
-                  className={`bg-white rounded-xl p-4 shadow-lg cursor-pointer border-2 transition-colors ${
+                  className={`bg-white rounded-xl p-4 shadow-lg cursor-pointer border-2 transition-all ${
                     selectedChild?.id === child.id ? 'border-indigo-500' : 'border-transparent'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                        <span className="text-xl">👶</span>
+                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-400 to-purple-400 rounded-full flex items-center justify-center text-2xl">
+                        👶
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-800">{child.name}</h3>
@@ -279,13 +351,13 @@ export default function ParentalView() {
                       </div>
                     </div>
                     <div className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(child.status)}`}>
-                      {child.status}
+                      {child.status.toUpperCase()}
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <MapPin className="w-4 h-4" />
-                      <span>Location tracked</span>
+                      <span>Tracked</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
@@ -293,49 +365,34 @@ export default function ParentalView() {
                     </div>
                   </div>
                 </motion.div>
-              );
-            })}
+              ))
+            )}
           </div>
 
-          {/* Right Panel - Map & Alerts */}
-          <div className="lg:w-2/3 flex flex-col space-y-4">
-            {/* Map */}
-            <div className="bg-white rounded-xl shadow-lg p-4 flex-1">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-blue-600" />
-                  {selectedChild ? `${selectedChild.name}'s Location` : 'Select a child to view location'}
-                </h3>
-                {selectedChild?.currentLocation && (
-                  <span className="text-sm text-gray-600">
-                    Lat: {selectedChild.currentLocation.lat.toFixed(4)}, Lng: {selectedChild.currentLocation.lng.toFixed(4)}
-                  </span>
-                )}
-              </div>
-              <div className="h-full min-h-[400px] rounded-lg overflow-hidden">
-                <LiveMap
-                  ambulances={ambulances.filter(a => a.status === "en-route")}
-                  sosVehicles={[
-                    { id: "POL-001", lat: 28.6150, lng: 77.2050, type: "police" },
-                    { id: "POL-002", lat: 28.6100, lng: 77.2250, type: "police" },
-                    { id: "POL-003", lat: 28.6080, lng: 77.1980, type: "police" }
-                  ]}
-                  trafficSignals={[
-                    { id: "TS-001", lat: 28.6139, lng: 77.2090, name: "Connaught Place", status: "Normal" },
-                    { id: "TS-002", lat: 28.6141, lng: 77.2092, name: "India Gate", status: "Busy" },
-                    { id: "TS-003", lat: 28.6100, lng: 77.2150, name: "Karol Bagh", status: "Congested" }
-                  ]}
-                  hospitals={[
-                    { id: "AIIMS", lat: 28.6069, lng: 77.2090, name: "AIIMS Delhi", status: "Available" },
-                    { id: "SJDH", lat: 28.5850, lng: 77.2030, name: "Safdarjung Hospital", status: "Available" }
-                  ]}
-                  emergencies={emergencies.filter(e => children.some(c => c.id === e.userId))}
-                  userLocation={selectedChild?.currentLocation}
-                  showUserLocation={!!selectedChild?.currentLocation}
-                  center={selectedChild?.currentLocation ? [selectedChild.currentLocation.lat, selectedChild.currentLocation.lng] : [28.6139, 77.2090]}
-                  zoom={14}
-                />
-              </div>
+          {/* Right - Map */}
+          <div className="lg:w-2/3 bg-white rounded-xl shadow-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-indigo-600" />
+                {selectedChild ? `${selectedChild.name}'s Location` : 'Select a child'}
+              </h3>
+              {selectedChild?.currentLocation && (
+                <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+                  🟢 LIVE
+                </span>
+              )}
+            </div>
+            <div className="h-[500px] rounded-lg overflow-hidden">
+              <LiveMap
+                ambulances={ambulances.filter(a => a.status === "en-route")}
+                emergencies={emergencies}
+                userLocation={selectedChild?.currentLocation}
+                showUserLocation={!!selectedChild?.currentLocation}
+                center={selectedChild?.currentLocation 
+                  ? [selectedChild.currentLocation.lat, selectedChild.currentLocation.lng] 
+                  : [28.6139, 77.2090]}
+                zoom={15}
+              />
             </div>
           </div>
         </div>

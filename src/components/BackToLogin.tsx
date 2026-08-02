@@ -1,35 +1,41 @@
-// PRAVAH + LifeLane - Back to Login Button
-// Navigation component for returning to login page
-
 "use client";
 
-import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-
-interface BackToLoginProps {
-  className?: string;
-}
-
-export default function BackToLogin({ className = "" }: BackToLoginProps) {
-  const router = useRouter();
-
-  const handleBackToLogin = () => {
-    // Clear any stored data
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('selectedService');
-    localStorage.removeItem('childProfile');
-    
-    // Navigate to login page
-    router.push('/login');
-  };
-
+export default function BackToLogin() {
   return (
     <button
-      onClick={handleBackToLogin}
-      className={`flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors ${className}`}
+      onClick={() => (window.location.href = "/login")}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "10px 18px",
+        background: "rgba(59,130,246,0.2)",
+        border: "1px solid rgba(59,130,246,0.5)",
+        borderRadius: 12,
+        color: "#93c5fd",
+        fontSize: "0.9rem",
+        fontWeight: 600,
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        fontFamily: "'Inter', sans-serif",
+        whiteSpace: "nowrap",
+        boxShadow: "0 2px 8px rgba(59,130,246,0.15)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "rgba(59,130,246,0.35)";
+        e.currentTarget.style.borderColor = "rgba(59,130,246,0.7)";
+        e.currentTarget.style.color = "#dbeafe";
+        e.currentTarget.style.transform = "translateX(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "rgba(59,130,246,0.2)";
+        e.currentTarget.style.borderColor = "rgba(59,130,246,0.5)";
+        e.currentTarget.style.color = "#93c5fd";
+        e.currentTarget.style.transform = "translateX(0)";
+      }}
     >
-      <ArrowLeft className="w-4 h-4" />
-      <span className="text-sm font-medium">Back to Login</span>
+      <span style={{ fontSize: "1rem" }}>←</span>
+      <span>Back to Login</span>
     </button>
   );
 }

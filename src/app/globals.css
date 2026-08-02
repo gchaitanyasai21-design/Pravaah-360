@@ -1,1 +1,144 @@
+/* ===== LIQUID GLASS THEME ===== */
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.glass-dark {
+  background: rgba(15, 15, 25, 0.55);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* Animated gradient background */
+.liquid-bg {
+  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #7f1d1d, #0f172a);
+  background-size: 400% 400%;
+  animation: liquidFlow 15s ease infinite;
+}
+
+@keyframes liquidFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Glowing pulse */
+.glow-red {
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.5), 0 0 60px rgba(239, 68, 68, 0.3);
+}
+.glow-green {
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.5), 0 0 60px rgba(34, 197, 94, 0.3);
+}
+.glow-blue {
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.5), 0 0 60px rgba(59, 130, 246, 0.3);
+}
+
+/* Ambulance pulse marker */
+@keyframes pulseRing {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.pulse-ring {
+  animation: pulseRing 1.5s ease-out infinite;
+}
+
 @import "tailwindcss";
+
+/* ...any existing styles you had... */
+
+/* ===== LIQUID GLASS THEME ===== */
+
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.glass-dark {
+  background: rgba(10, 10, 20, 0.55);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.liquid-bg {
+  background: linear-gradient(-45deg, #0a0f2c, #1a1140, #3b0764, #7f1d1d);
+  background-size: 400% 400%;
+  animation: liquidFlow 18s ease infinite;
+}
+
+.glow-red {
+  box-shadow:
+    0 0 30px rgba(239, 68, 68, 0.7),
+    0 0 60px rgba(239, 68, 68, 0.45),
+    0 0 100px rgba(239, 68, 68, 0.25);
+}
+
+@keyframes liquidFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ===== LEAFLET MAP FIXES ===== */
+.leaflet-container {
+  background: #1a1a2e !important;
+  font-family: inherit;
+}
+
+.leaflet-tile-pane {
+  filter: brightness(0.95) contrast(1.05);
+}
+
+/* Ensure divIcons render properly */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.hospital-icon,
+.ambulance-icon,
+.moving-ambulance-icon,
+.pulse-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Popup dark theme */
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 15, 30, 0.95) !important;
+  color: white !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px);
+}
+
+.leaflet-popup-tip {
+  background: rgba(15, 15, 30, 0.95) !important;
+}
+
+@keyframes sosPulse {
+  0%   { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* Better map look */
+.leaflet-container {
+  background: #1a1a2e !important;
+  outline: none !important;
+}
+
+.leaflet-marker-icon {
+  background: transparent !important;
+  border: none !important;
+}
