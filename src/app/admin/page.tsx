@@ -4,35 +4,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity,
-  AlertTriangle,
-  ArrowUpDown,
-  Ban,
-  BarChart3,
-  Bell,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Eye,
-  Filter,
-  Gauge,
-  HeartPulse,
-  Home,
-  MapPin,
-  Moon,
-  Phone,
-  Plus,
-  Radio,
-  Search,
-  Settings,
-  Shield,
-  Siren,
-  Trash2,
-  Truck,
-  UserPlus,
-  Users,
-  Zap,
+  Activity, AlertTriangle, ArrowUpDown, Ban,
+  BarChart3, Bell, CheckCircle2, ChevronLeft,
+  ChevronRight, Clock, Eye, Filter, Gauge,
+  HeartPulse, Home, LogOut, MapPin, Moon, Phone,
+  Plus, Radio, Save, Search, Settings,
+  Shield, Siren, Star, Trash2, Truck,
+  UserPlus, Users, Zap,
 } from "lucide-react";
 import LiveMap from "@/components/LiveMap";
 import { AppProvider, useApp } from "@/store/AppContext";
@@ -249,7 +227,15 @@ function AdminPageContent() {
   const [sortByPriority, setSortByPriority] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-
+   const handleBackToLogin = () => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      console.error("Error clearing storage:", e);
+    }
+    window.location.href = "/login";
+  };
   useEffect(() => {
     void login("admin@pravaah360.in", "admin123", "admin");
 
@@ -838,6 +824,14 @@ function AdminPageContent() {
                     <p className="text-xs text-slate-400">admin@pravaah360.in</p>
                   </div>
                 </div>
+                <button
+  onClick={handleBackToLogin}
+  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 text-white font-semibold shadow-lg hover:from-red-600 hover:to-orange-600 hover:scale-105 transition-all"
+  title="Back to Login"
+>
+  <LogOut className="w-4 h-4" />
+  <span className="hidden sm:inline">Logout</span>
+</button>
               </div>
             </div>
           </header>
