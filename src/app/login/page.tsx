@@ -1,407 +1,368 @@
-// PRAVAH + LifeLane - Modern Login Page
-// Multi-Service Smart City Platform
-
 "use client";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { User, Lock, Mail, ArrowRight, Shield, Truck, Heart, MapPin, Brain, Users, AlertTriangle, Phone, Eye, EyeOff, ChevronRight } from "lucide-react";
-import LiveMap from "@/components/LiveMap";
 import Link from "next/link";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Baby,
+  BarChart3,
+  CheckCircle2,
+  Heart,
+  Loader2,
+  Lock,
+  MapPin,
+  Package,
+  Phone,
+  Shield,
+  Siren,
+  Sparkles,
+  Truck,
+  UserCheck,
+  Zap,
+} from "lucide-react";
 import { useAuth } from "@/store/AuthContext";
+import type { UserRole } from "@/types/roles";
+
+interface RoleCard {
+  id: string;
+  name: string;
+  description: string;
+  features: string[];
+  email: string;
+  password: string;
+  role: UserRole;
+  route: string;
+  icon: LucideIcon;
+  gradient: string;
+  glow: string;
+}
+
+interface InfoCard {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  gradient: string;
+}
+
+const roles: RoleCard[] = [
+  {
+    id: "patient",
+    name: "Patient",
+    description: "Emergency medical services",
+    features: ["SOS alerts", "Nearby hospitals", "Ambulance tracking"],
+    email: "patient@pravaah360.in",
+    password: "patient123",
+    role: "patient",
+    route: "/emergency",
+    icon: Siren,
+    gradient: "from-red-500 to-orange-500",
+    glow: "shadow-red-500/20 hover:border-red-300/40",
+  },
+  {
+    id: "women",
+    name: "Women Safety",
+    description: "Personal safety companion",
+    features: ["SOS button", "Safe walk", "Live location"],
+    email: "women@pravaah360.in",
+    password: "women123",
+    role: "women_safety",
+    route: "/womensafety",
+    icon: Shield,
+    gradient: "from-pink-500 to-rose-500",
+    glow: "shadow-pink-500/20 hover:border-pink-300/40",
+  },
+  {
+    id: "parent",
+    name: "Parent",
+    description: "Monitor your children",
+    features: ["Live tracking", "Screen time", "Geo-fences"],
+    email: "parent@pravaah360.in",
+    password: "parent123",
+    role: "parent_user",
+    route: "/parent",
+    icon: UserCheck,
+    gradient: "from-blue-500 to-cyan-500",
+    glow: "shadow-blue-500/20 hover:border-blue-300/40",
+  },
+  {
+    id: "child",
+    name: "Child",
+    description: "Kid-friendly safety app",
+    features: ["SOS button", "Safe zones", "Parent contact"],
+    email: "child@pravaah360.in",
+    password: "child123",
+    role: "child_user",
+    route: "/child",
+    icon: Baby,
+    gradient: "from-purple-500 to-indigo-500",
+    glow: "shadow-purple-500/20 hover:border-purple-300/40",
+  },
+  {
+    id: "elder",
+    name: "Elder Care",
+    description: "Senior citizen support",
+    features: ["Reminders", "Emergency help", "Family alerts"],
+    email: "elder@pravaah360.in",
+    password: "elder123",
+    role: "elderly_user",
+    route: "/eldercare",
+    icon: Heart,
+    gradient: "from-green-500 to-emerald-500",
+    glow: "shadow-green-500/20 hover:border-green-300/40",
+  },
+  {
+    id: "parcel",
+    name: "Parcel User",
+    description: "Track deliveries",
+    features: ["Live tracking", "Delivery updates", "Rate service"],
+    email: "user@pravaah360.in",
+    password: "user123",
+    role: "parcel_user",
+    route: "/parcel",
+    icon: Package,
+    gradient: "from-yellow-500 to-orange-500",
+    glow: "shadow-yellow-500/20 hover:border-yellow-300/40",
+  },
+  {
+    id: "driver",
+    name: "Service Provider",
+    description: "Delivery & services",
+    features: ["Manage orders", "Track earnings", "Rating system"],
+    email: "driver@pravaah360.in",
+    password: "driver123",
+    role: "driver",
+    route: "/driver",
+    icon: Truck,
+    gradient: "from-orange-500 to-red-500",
+    glow: "shadow-orange-500/20 hover:border-orange-300/40",
+  },
+  {
+    id: "admin",
+    name: "System Admin",
+    description: "Complete platform control",
+    features: ["User management", "Analytics", "System settings"],
+    email: "admin@pravaah360.in",
+    password: "admin123",
+    role: "admin",
+    route: "/admin",
+    icon: BarChart3,
+    gradient: "from-cyan-500 to-blue-500",
+    glow: "shadow-cyan-500/20 hover:border-cyan-300/40",
+  },
+];
+
+const infoCards: InfoCard[] = [
+  {
+    title: "Instant Access",
+    description: "One click to access your role's dashboard",
+    icon: Zap,
+    gradient: "from-blue-500 to-cyan-500",
+  },
+  {
+    title: "Secure Login",
+    description: "Encrypted authentication for all users",
+    icon: Shield,
+    gradient: "from-purple-500 to-pink-500",
+  },
+  {
+    title: "Vijayawada Ready",
+    description: "Configured for Vijayawada, AP 520013",
+    icon: MapPin,
+    gradient: "from-green-500 to-emerald-500",
+  },
+];
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [selectedService, setSelectedService] = useState("emergency");
-  const [isAbove18, setIsAbove18] = useState(false);
-  const [childName, setChildName] = useState("");
-  const [parentName, setParentName] = useState("");
-  const [parentPhone, setParentPhone] = useState("");
-  const [bloodGroup, setBloodGroup] = useState("");
-  const [showAdditionalFields, setShowAdditionalFields] = useState(false);
+  const [loadingRole, setLoadingRole] = useState<string | null>(null);
 
-  const services = [
-    {
-      id: "emergency",
-      name: "Emergency Services",
-      icon: Shield,
-      color: "from-red-500 to-pink-500",
-      description: "Medical emergency assistance",
-      role: "patient" as const
-    },
-    {
-      id: "parcel",
-      name: "Parcel Delivery",
-      icon: Truck,
-      color: "from-blue-500 to-cyan-500",
-      description: "Send & receive packages",
-      role: "parcel_user" as const
-    },
-    {
-      id: "womensafety",
-      name: "Women Safety",
-      icon: Shield,
-      color: "from-pink-500 to-rose-500",
-      description: "Personal safety & location tracking",
-      role: "women_safety" as const
-    },
-    {
-      id: "child",
-      name: "Child Safety",
-      icon: MapPin,
-      color: "from-purple-500 to-indigo-500",
-      description: "Child monitoring & safety",
-      role: "child_user" as const,
-      requiresAgeVerification: true
-    },
-    {
-      id: "parent",
-      name: "Parental Monitoring",
-      icon: MapPin,
-      color: "from-indigo-500 to-purple-500",
-      description: "Track your children's location",
-      role: "parent_user" as const
-    },
-    {
-      id: "eldercare",
-      name: "Elderly Care",
-      icon: Heart,
-      color: "from-green-500 to-teal-500",
-      description: "Senior citizen monitoring",
-      role: "elderly_user" as const
-    },
-    {
-      id: "driver",
-      name: "Service Provider",
-      icon: Truck,
-      color: "from-orange-500 to-amber-500",
-      description: "Driver & delivery partner",
-      role: "driver" as const
-    },
-    {
-      id: "admin",
-      name: "System Admin",
-      icon: Shield,
-      color: "from-gray-500 to-slate-500",
-      description: "Full system control",
-      role: "admin" as const,
-      requiresAdmin: true
+  const handleRoleLogin = async (roleCard: RoleCard) => {
+    if (loadingRole) {
+      return;
     }
-  ];
 
-  const handleServiceChange = (serviceId: string) => {
-    setSelectedService(serviceId);
-    const service = services.find(s => s.id === serviceId);
-    setShowAdditionalFields(service?.requiresAgeVerification || false);
-  };
+    setLoadingRole(roleCard.id);
+    localStorage.setItem("userEmail", roleCard.email);
+    localStorage.setItem("selectedService", roleCard.id);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Store additional data for child users
-    if (showAdditionalFields) {
-      localStorage.setItem('childProfile', JSON.stringify({
-        isAbove18,
-        childName,
-        parentName,
-        parentPhone,
-        bloodGroup
-      }));
-    }
-    
-    // Map service ID to user role
-    const roleMap: Record<string, string> = {
-      'emergency': 'patient',
-      'admin': 'admin',
-      'driver': 'driver',
-      'dispatch': 'dispatch',
-      'traffic': 'traffic',
-      'child': 'child_user',
-      'parent': 'parent_user',
-      'eldercare': 'elderly_user',
-      'womensafety': 'women_safety',
-      'parcel': 'parcel_user'
-    };
-    
-    const userRole = roleMap[selectedService] || 'patient';
-    
     try {
-      // Use AuthContext login
-      const loginSuccess = await login(email, password, userRole as any);
-      
-      if (loginSuccess) {
-        // Store login info
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('selectedService', selectedService);
-        
-        // Redirect to service-specific page
-        window.location.href = `/${selectedService}`;
-      } else {
-        // Show error message
-        alert('Login failed. Please check your credentials and try again.');
+      const success = await login(roleCard.email, roleCard.password, roleCard.role);
+      if (!success) {
+        setLoadingRole(null);
+        alert("Login failed. Please try again.");
+        return;
       }
+
+      window.setTimeout(() => {
+        window.location.href = roleCard.route;
+      }, 800);
     } catch (error) {
-      console.error('Login error:', error);
-      alert('Login failed. Please try again.');
+      console.error("Login error:", error);
+      setLoadingRole(null);
+      alert("Login failed. Please try again.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="absolute inset-0 bg-black opacity-50"></div>
-      
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000"></div>
-        <div className="absolute bottom-20 left-1/2 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-4000"></div>
-      </div>
+    <main className="min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.22),transparent_32%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.2),transparent_30%),linear-gradient(180deg,#020617,#0f172a_45%,#111827)]" />
+      <div className="absolute left-8 top-24 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl animate-pulse" />
+      <div className="absolute right-10 top-40 h-80 w-80 rounded-full bg-purple-500/20 blur-3xl animate-pulse" />
+      <div className="absolute bottom-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-pink-500/20 blur-3xl animate-pulse" />
 
-      <div className="relative z-10 flex min-h-screen">
-        {/* Service Selection */}
-        <div className="flex-1 flex items-center justify-center p-8 relative">
-          {/* Background Map */}
-          <div className="absolute inset-0 opacity-10">
-            <LiveMap
-              ambulances={[]}
-              emergencies={[]}
-              center={[28.6139, 77.2090]}
-              zoom={10}
-            />
-          </div>
-          
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/70 px-4 py-4 backdrop-blur-xl sm:px-6 lg:px-10">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Link href="/" className="group flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.07] transition group-hover:-translate-x-1">
+              <ArrowLeft className="h-5 w-5 text-slate-200" />
+            </span>
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 shadow-lg shadow-blue-500/20">
+              <Zap className="h-5 w-5 text-white" />
+            </span>
+            <span>
+              <span className="block font-bold text-white">Pravaah 360</span>
+              <span className="block text-xs text-slate-400">Back to Home</span>
+            </span>
+          </Link>
+
+          <a
+            href="tel:108"
+            className="group inline-flex h-11 w-fit items-center gap-2 rounded-xl border border-red-300/20 bg-red-500/10 px-4 text-sm font-bold text-red-100 transition hover:-translate-y-0.5 hover:border-red-300/40 hover:bg-red-500/20"
+          >
+            <Phone className="h-4 w-4 transition group-hover:rotate-12" />
+            Emergency 108
+          </a>
+        </div>
+      </header>
+
+      <section className="relative px-4 py-16 sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-7xl text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md relative z-10"
+            className="inline-flex items-center gap-2 rounded-full border border-blue-300/20 bg-white/[0.07] px-4 py-2 text-sm font-medium text-blue-100 shadow-2xl shadow-blue-950/20 backdrop-blur-xl"
           >
-            <h1 className="text-4xl font-bold text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
-              PRAVAH + LifeLane
-            </h1>
-            <p className="text-gray-300 mb-8">
-              Multi-Service Smart City Platform
-            </p>
-
-            <div className="space-y-3 mb-8">
-              <h3 className="text-white font-semibold mb-4">Select Service</h3>
-              {services.map((service) => (
-                <motion.button
-                  key={service.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => handleServiceChange(service.id)}
-                  className={`w-full p-4 rounded-xl border-2 transition-all ${
-                    selectedService === service.id
-                      ? "border-white bg-white/10"
-                      : "border-white/20 hover:border-white/40 hover:bg-white/5"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${service.color} flex items-center justify-center`}>
-                      <service.icon className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <div className="text-white font-medium">{service.name}</div>
-                      <div className="text-gray-400 text-sm">{service.description}</div>
-                    </div>
-                  </div>
-                </motion.button>
-              ))}
-            </div>
+            <Sparkles className="h-4 w-4 text-blue-300" />
+            Choose Your Access
           </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="mt-6 bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300 bg-clip-text text-5xl font-black tracking-tight text-transparent sm:text-7xl"
+          >
+            Choose Your Role
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.16 }}
+            className="mx-auto mt-5 max-w-3xl text-lg leading-8 text-slate-300"
+          >
+            Select how you want to use Pravaah 360. Click any card to instantly access your dashboard.
+          </motion.p>
         </div>
 
-        {/* Login Form */}
-        <div className="w-1/2 p-8 flex items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="max-w-md w-full"
-          >
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/20">
-              <h2 className="text-2xl font-bold text-white mb-6">Sign In</h2>
-              
-              <form onSubmit={handleLogin} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
+        <div className="mx-auto mt-14 grid max-w-7xl gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          {roles.map((roleCard, index) => {
+            const Icon = roleCard.icon;
+            const isLoading = loadingRole === roleCard.id;
+            const isDisabled = Boolean(loadingRole && !isLoading);
+
+            return (
+              <motion.button
+                key={roleCard.id}
+                type="button"
+                initial={{ opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 * index, duration: 0.45 }}
+                whileHover={isDisabled ? undefined : { y: -8 }}
+                onClick={() => handleRoleLogin(roleCard)}
+                disabled={Boolean(loadingRole)}
+                className={`group relative flex min-h-[360px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 text-left shadow-2xl shadow-slate-950/25 backdrop-blur-xl transition duration-300 hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-50 ${roleCard.glow}`}
+              >
+                <span className="absolute right-5 top-5 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-200">
+                  <Lock className="h-3.5 w-3.5" />
+                  Auto
+                </span>
+
+                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${roleCard.gradient} shadow-lg transition duration-300 group-hover:rotate-6`}>
+                  <Icon className="h-7 w-7 text-white" />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      placeholder="Enter your password"
-                      required
-                    />
-                  </div>
+                <h2 className="mt-6 text-2xl font-bold text-white">{roleCard.name}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-400">{roleCard.description}</p>
+
+                <div className="mt-5 space-y-2">
+                  {roleCard.features.map((feature) => (
+                    <div key={feature} className="flex items-center gap-2 text-sm text-slate-300">
+                      <CheckCircle2 className="h-4 w-4 text-green-300" />
+                      {feature}
+                    </div>
+                  ))}
                 </div>
 
-                {/* Additional fields for child users */}
-                {showAdditionalFields && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="space-y-4 border-t border-white/20 pt-4"
-                  >
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Are you above 18 years old?
-                      </label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            checked={isAbove18}
-                            onChange={() => setIsAbove18(true)}
-                            className="mr-2"
-                          />
-                          <span className="text-white">Yes (18+)</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            checked={!isAbove18}
-                            onChange={() => setIsAbove18(false)}
-                            className="mr-2"
-                          />
-                          <span className="text-white">No (Below 18)</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Child Name
-                      </label>
-                      <input
-                        type="text"
-                        value={childName}
-                        onChange={(e) => setChildName(e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Enter child's name"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Parent/Guardian Name
-                      </label>
-                      <input
-                        type="text"
-                        value={parentName}
-                        onChange={(e) => setParentName(e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Enter parent's name"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Parent Phone Number
-                      </label>
-                      <input
-                        type="tel"
-                        value={parentPhone}
-                        onChange={(e) => setParentPhone(e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Enter parent's phone number"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Blood Group
-                      </label>
-                      <select
-                        value={bloodGroup}
-                        onChange={(e) => setBloodGroup(e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        required
-                      >
-                        <option value="" className="text-gray-800">Select blood group</option>
-                        <option value="A+" className="text-gray-800">A+</option>
-                        <option value="A-" className="text-gray-800">A-</option>
-                        <option value="B+" className="text-gray-800">B+</option>
-                        <option value="B-" className="text-gray-800">B-</option>
-                        <option value="AB+" className="text-gray-800">AB+</option>
-                        <option value="AB-" className="text-gray-800">AB-</option>
-                        <option value="O+" className="text-gray-800">O+</option>
-                        <option value="O-" className="text-gray-800">O-</option>
-                      </select>
-                    </div>
-                  </motion.div>
-                )}
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg shadow-lg hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    Sign In
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                </motion.button>
-              </form>
-
-              <div className="mt-6 text-center">
-                <p className="text-gray-400 text-sm mb-3">
-                  Or use direct access:
-                </p>
-                <div className="space-y-2 text-xs">
-                  <div className="text-purple-300">
-                    Women Safety: <span className="text-white">safety@parvah.com / safety123</span>
-                  </div>
-                  <div className="text-purple-300">
-                    Parental: <span className="text-white">parent@parvah.com / parent123</span>
-                  </div>
-                  <div className="text-purple-300">
-                    Elderly Care: <span className="text-white">elderly@parvah.com / elderly123</span>
-                  </div>
-                  <div className="text-purple-300">
-                    Parcel: <span className="text-white">user@parvah.com / user123</span>
-                  </div>
-                  <div className="text-purple-300">
-                    Emergency: <span className="text-white">patient@parvah.com / patient123</span>
-                  </div>
+                <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/40 p-3 text-xs text-slate-500">
+                  <p className="truncate text-slate-300">{roleCard.email}</p>
+                  <p className="mt-1">{roleCard.password}</p>
                 </div>
-                <div className="mt-3 pt-3 border-t border-gray-600">
-                  <p className="text-gray-400 text-sm">
-                    Or visit: <span className="text-purple-400">/womensafety</span>, <span className="text-purple-400">/parent</span>, <span className="text-purple-400">/eldercare</span>, <span className="text-purple-400">/parcel</span>, <span className="text-purple-400">/emergency</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+
+                <span className={`mt-auto inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r ${roleCard.gradient} px-4 text-sm font-bold text-white shadow-lg transition duration-300 group-hover:shadow-2xl`}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Logging in...
+                    </>
+                  ) : (
+                    <>
+                      Continue as {roleCard.name}
+                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                    </>
+                  )}
+                </span>
+              </motion.button>
+            );
+          })}
         </div>
-      </div>
-    </div>
+      </section>
+
+      <section className="px-4 pb-16 sm:px-6 lg:px-10">
+        <div className="mx-auto grid max-w-7xl gap-5 md:grid-cols-3">
+          {infoCards.map((card, index) => {
+            const Icon = card.icon;
+            return (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45 + index * 0.08 }}
+                className="group rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-2xl shadow-slate-950/25 backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.07]"
+              >
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${card.gradient} transition duration-300 group-hover:rotate-6`}>
+                  <Icon className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="mt-5 text-xl font-bold text-white">{card.title}</h3>
+                <p className="mt-2 leading-7 text-slate-400">{card.description}</p>
+              </motion.div>
+            );
+          })}
+        </div>
+      </section>
+
+      <footer className="border-t border-white/10 px-4 py-8 sm:px-6 lg:px-10">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-slate-400 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <a href="tel:108" className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 transition hover:text-white">108</a>
+            <a href="tel:100" className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 transition hover:text-white">100</a>
+            <a href="tel:101" className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 transition hover:text-white">101</a>
+          </div>
+          <p>© 2026 Pravaah 360 · Built for Vijayawada, Andhra Pradesh</p>
+        </div>
+      </footer>
+    </main>
   );
 }
