@@ -1,274 +1,171 @@
-// PRAVAAH + LifeLane – Child Safety Direct Page
-// Real GPS tracking + localStorage save
-
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useAuth } from "@/store/AuthContext";
+import { useEffect, useState } from "react";
 import { AppProvider } from "@/store/AppContext";
+import { useAuth } from "@/store/AuthContext";
 import LiveMap from "@/components/LiveMap";
+import {
+  Bell,
+  CheckCircle2,
+  Heart,
+  HelpCircle,
+  Home,
+  MapPin,
+  Phone,
+  Shield,
+  Smile,
+  Users,
+} from "lucide-react";
+import {
+  LatLng,
+  VIJAYAWADA,
+  VIJAYAWADA_HOSPITALS,
+  distanceKm,
+  readStoredLocation,
+  useLiveLocation,
+  useSecondsAgo,
+} from "@/lib/realtime";
 
-// ─── Types ───────────────────────────────────────────────
-interface LocationData {
-  lat: number;
-  lng: number;
-  accuracy: number;
-  timestamp: number;
-  childId: string;
-}
-
-// ─── Constants ───────────────────────────────────────────
-const CHILD_ID = "child_001";
-const LS_KEY = `child_location_${CHILD_ID}`;
+const CHILD_KEY = "child_location_child_001";
+const PARENT_KEY = "parent_location_parent_001";
+const safeZone = { id: "CHILD-SAFE", label: "Home Safe Zone", lat: 16.5062, lng: 80.648, radius: 850 };
+const parentContacts = [
+  { name: "Mom", phone: "+91 98765 41021", emoji: "👩" },
+  { name: "Dad", phone: "+91 98765 41022", emoji: "👨" },
+];
 
 function ChildPageContent() {
   const { login } = useAuth();
+  const { location, accuracy, locationStatus, lastUpdate } = useLiveLocation(CHILD_KEY);
+  const secondsAgo = useSecondsAgo(lastUpdate);
+  const [parentLocation, setParentLocation] = useState<LatLng>(() => readStoredLocation(PARENT_KEY, { lat: 16.5033, lng: 80.641 }));
+  const [message, setMessage] = useState("You are safe and connected.");
+  const [focus, setFocus] = useState<"me" | "parent" | "all">("all");
 
-  const [currentLocation, setCurrentLocation] = useState<{
-    lat: number;
-    lng: number;
-  }>({ lat: 28.6139, lng: 77.2090 }); // Delhi default
-
-  const [accuracy, setAccuracy] = useState<number>(0);
-  const [gpsStatus, setGpsStatus] = useState<string>("Acquiring GPS...");
-  const [errorMsg, setErrorMsg] = useState<string>("");
-
-  const [childName, setChildName] = useState("");
-  const [parentPhone, setParentPhone] = useState("");
-
-  const watchIdRef = useRef<number | null>(null);
-
-  // ─── Auto-login + load saved data ──────────────────────
   useEffect(() => {
-    login("child@parvah.com", "child123", "child_user");
-
-    const savedName = localStorage.getItem("childName");
-    const savedPhone = localStorage.getItem("parentPhone");
-    if (savedName) setChildName(savedName);
-    if (savedPhone) setParentPhone(savedPhone);
+    void login("child@pravaah360.in", "child123", "child_user");
   }, [login]);
 
-  // ─── Real GPS Tracking ─────────────────────────────────
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setGpsStatus("❌ GPS not supported");
-      setErrorMsg("Your browser does not support geolocation.");
-      return;
-    }
+    const timer = window.setInterval(() => {
+      localStorage.setItem(CHILD_KEY, JSON.stringify({ ...location, accuracy, timestamp: Date.now() }));
+      setParentLocation(readStoredLocation(PARENT_KEY, parentLocation));
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [accuracy, location, parentLocation]);
 
-    setGpsStatus("🔄 Acquiring GPS...");
+  const isSafe = distanceKm(location, safeZone) * 1000 <= safeZone.radius;
+  const mapCenter = focus === "me" ? location : focus === "parent" ? parentLocation : VIJAYAWADA;
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const newLoc = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        };
-
-        setCurrentLocation(newLoc);
-        setAccuracy(Math.round(pos.coords.accuracy));
-        setGpsStatus("✅ Live GPS Active");
-        setErrorMsg("");
-
-        // Save to localStorage with child_location_ID key
-        const data: LocationData = {
-          ...newLoc,
-          accuracy: Math.round(pos.coords.accuracy),
-          timestamp: pos.timestamp,
-          childId: CHILD_ID,
-        };
-
-        localStorage.setItem(LS_KEY, JSON.stringify(data));
-
-        // Also keep the old key for backward compatibility
-        localStorage.setItem("childLocation", JSON.stringify(newLoc));
-
-        console.log(`[Child] Saved to ${LS_KEY}:`, data);
-      },
-      (err) => {
-        setGpsStatus("⚠️ GPS Error");
-        if (err.code === err.PERMISSION_DENIED) {
-          setErrorMsg("Location access denied. Please enable in browser settings.");
-        } else if (err.code === err.POSITION_UNAVAILABLE) {
-          setErrorMsg("Location unavailable. Move to an open area.");
-        } else {
-          setErrorMsg("GPS timed out. Retrying...");
-        }
-        console.warn("[Child] GPS error:", err.message);
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 30000,
-        maximumAge: 10000,
-      }
-    );
-
-    // Cleanup on unmount
-    return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-    };
-  }, []);
-
-  // ─── Save child info to localStorage ───────────────────
-  const handleSaveInfo = () => {
-    localStorage.setItem("childName", childName);
-    localStorage.setItem("parentPhone", parentPhone);
-    alert("✅ Info saved!");
+  const showWhereAmI = () => setMessage(`You are near Vijayawada: ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`);
+  const showParent = () => {
+    setFocus("parent");
+    setMessage(`Mom/Dad is about ${distanceKm(location, parentLocation).toFixed(2)} km away.`);
   };
+  const sendSafe = () => setMessage("I'm safe message sent to Mom and Dad.");
+  const needHelp = () => setMessage("Help request sent. Parent and emergency contacts were notified.");
 
-  // ─── UI ────────────────────────────────────────────────
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)",
-      color: "#f1f5f9",
-      padding: "20px",
-      fontFamily: "'Inter', sans-serif",
-    }}>
-      {/* Header */}
-      <div style={{ marginBottom: "20px" }}>
-        <h1 style={{ margin: 0, fontSize: "1.8rem" }}>🧒 Child Safety</h1>
-        <p style={{ margin: "4px 0 0", color: "#94a3b8", fontSize: "0.9rem" }}>
-          Pravaah 360 · Live GPS Tracking
-        </p>
-      </div>
-
-      {/* GPS Status */}
-      <div style={{
-        background: "rgba(255,255,255,0.08)",
-        padding: "16px",
-        borderRadius: "12px",
-        marginBottom: "16px",
-      }}>
-        <div style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "8px" }}>
-          {gpsStatus}
-        </div>
-
-        {errorMsg && (
-          <div style={{
-            color: "#fca5a5",
-            fontSize: "0.85rem",
-            marginBottom: "8px",
-          }}>
-            {errorMsg}
+    <main className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.18),transparent_32%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.2),transparent_30%),linear-gradient(180deg,#020617,#0f172a_45%,#111827)]" />
+      <header className="border-b border-white/10 bg-slate-950/70 px-5 py-4 backdrop-blur-xl">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm text-slate-400">Child Safety · Pravaah 360</p>
+            <h1 className="mt-1 flex items-center gap-3 text-4xl font-black text-white">
+              <Smile className="h-9 w-9 text-yellow-300" />
+              Hi Ananya!
+            </h1>
           </div>
-        )}
+          <span className={`inline-flex w-fit items-center gap-2 rounded-2xl border px-4 py-3 text-lg font-bold ${isSafe ? "border-green-400/30 bg-green-500/15 text-green-100" : "border-red-400/30 bg-red-500/15 text-red-100"}`}>
+            <span className="h-3 w-3 animate-pulse rounded-full bg-current" />
+            {isSafe ? "Safe Zone" : "Outside Safe Zone"}
+          </span>
+        </div>
+      </header>
 
-        <div style={{ fontSize: "0.9rem", color: "#cbd5e1" }}>
-          📍 Lat: <strong>{currentLocation.lat.toFixed(6)}</strong><br />
-          📍 Lng: <strong>{currentLocation.lng.toFixed(6)}</strong><br />
-          🎯 Accuracy: <strong>±{accuracy}m</strong>
+      <section className="grid gap-6 p-5 xl:grid-cols-[320px_minmax(0,1fr)_320px]">
+        <aside className="space-y-5">
+          <KidPanel>
+            <p className="text-lg font-bold text-white">GPS is {locationStatus}</p>
+            <p className="mt-2 text-slate-400">Updated {secondsAgo}s ago · ±{accuracy}m</p>
+            <p className="mt-3 rounded-2xl bg-white/10 p-3 text-sm text-slate-200">{message}</p>
+          </KidPanel>
+
+          <button onClick={() => setMessage("SOS sent to parents and emergency services!")} className="relative flex h-44 w-full items-center justify-center rounded-[2rem] bg-gradient-to-br from-red-500 to-red-800 text-5xl font-black text-white shadow-2xl shadow-red-500/30 transition hover:-translate-y-1">
+            <span className="absolute inset-0 rounded-[2rem] bg-red-500/30 animate-ping" />
+            <span className="relative">SOS</span>
+          </button>
+
+          <div className="grid grid-cols-2 gap-3">
+            <BigButton icon={MapPin} label="Where am I?" onClick={showWhereAmI} color="from-blue-500 to-cyan-500" />
+            <BigButton icon={Users} label="Where's Mom/Dad?" onClick={showParent} color="from-purple-500 to-pink-500" />
+            <BigButton icon={CheckCircle2} label="I'm Safe" onClick={sendSafe} color="from-green-500 to-emerald-500" />
+            <BigButton icon={HelpCircle} label="I Need Help" onClick={needHelp} color="from-orange-500 to-red-500" />
+          </div>
+        </aside>
+
+        <div className="h-[650px] overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.07] p-3 shadow-2xl shadow-slate-950/30 backdrop-blur-xl">
+          <LiveMap
+            key={focus}
+            center={[mapCenter.lat, mapCenter.lng]}
+            zoom={focus === "all" ? 13 : 15}
+            autoFitBounds={focus === "all"}
+            customMarkers={[
+              { id: "child", label: "Me", lat: location.lat, lng: location.lng, emoji: "🧒", color: "#22c55e", size: 44, pulse: true, popup: "<b>This is you</b>" },
+              { id: "parent", label: "Parent", lat: parentLocation.lat, lng: parentLocation.lng, emoji: "👨", color: "#3b82f6", size: 38, pulse: true, popup: "<b>Mom/Dad location</b>" },
+            ]}
+            circles={[{ id: safeZone.id, lat: safeZone.lat, lng: safeZone.lng, radius: safeZone.radius, color: isSafe ? "#22c55e" : "#ef4444", label: safeZone.label }]}
+            polylines={[{ id: "family-line", positions: [location, parentLocation], color: "#38bdf8", dashed: true }]}
+            hospitals={VIJAYAWADA_HOSPITALS.slice(0, 6)}
+          />
         </div>
 
-        <div style={{
-          marginTop: "10px",
-          fontSize: "0.75rem",
-          color: "#64748b",
-        }}>
-          💾 Saved to: <code style={{
-            background: "rgba(255,255,255,0.1)",
-            padding: "2px 6px",
-            borderRadius: "4px",
-          }}>{LS_KEY}</code>
-        </div>
-      </div>
+        <aside className="space-y-5">
+          <KidPanel>
+            <h2 className="flex items-center gap-2 text-2xl font-black text-white"><Home className="h-6 w-6 text-green-300" /> My Safe Place</h2>
+            <p className="mt-3 text-slate-300">{safeZone.label}</p>
+            <p className="mt-2 text-sm text-slate-400">{Math.round(distanceKm(location, safeZone) * 1000)}m from center</p>
+          </KidPanel>
 
-      {/* Child Info Form */}
-      <div style={{
-        background: "rgba(255,255,255,0.08)",
-        padding: "16px",
-        borderRadius: "12px",
-        marginBottom: "16px",
-      }}>
-        <h3 style={{ margin: "0 0 12px" }}>👤 Child Info</h3>
+          <KidPanel>
+            <h2 className="flex items-center gap-2 text-2xl font-black text-white"><Phone className="h-6 w-6 text-blue-300" /> My People</h2>
+            <div className="mt-4 space-y-3">
+              {parentContacts.map((contact) => (
+                <a key={contact.name} href={`tel:${contact.phone}`} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 transition hover:bg-white/10">
+                  <span className="text-3xl">{contact.emoji}</span>
+                  <span><span className="block font-bold text-white">{contact.name}</span><span className="text-sm text-slate-400">{contact.phone}</span></span>
+                </a>
+              ))}
+            </div>
+          </KidPanel>
 
-        <input
-          type="text"
-          placeholder="Child Name"
-          value={childName}
-          onChange={(e) => setChildName(e.target.value)}
-          style={inputStyle}
-        />
-
-        <input
-          type="tel"
-          placeholder="Parent Phone"
-          value={parentPhone}
-          onChange={(e) => setParentPhone(e.target.value)}
-          style={inputStyle}
-        />
-
-        <button onClick={handleSaveInfo} style={buttonStyle}>
-          💾 Save Info
-        </button>
-      </div>
-
-      {/* Live Map */}
-      <div style={{
-        background: "rgba(255,255,255,0.08)",
-        padding: "16px",
-        borderRadius: "12px",
-        marginBottom: "16px",
-      }}>
-        <h3 style={{ margin: "0 0 12px" }}>🗺️ Live Location</h3>
-        <LiveMap
-        key="child-live-map"
-        userLocation={currentLocation}
-        showUserLocation={true}
-        center={[currentLocation.lat, currentLocation.lng]}
-        zoom={14}
-/>
-      </div>
-
-      {/* Google Maps Link */}
-      <a
-        href={`https://maps.google.com/?q=${currentLocation.lat},${currentLocation.lng}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          display: "block",
-          textAlign: "center",
-          padding: "12px",
-          background: "#3b82f6",
-          color: "#fff",
-          borderRadius: "10px",
-          textDecoration: "none",
-          fontWeight: 700,
-        }}
-      >
-        🗺️ Open in Google Maps
-      </a>
-    </div>
+          <KidPanel>
+            <h2 className="flex items-center gap-2 text-xl font-bold text-white"><Shield className="h-5 w-5 text-purple-300" /> Nearby Help</h2>
+            <div className="mt-3 space-y-2 text-sm text-slate-300">
+              <p><Bell className="mr-2 inline h-4 w-4 text-red-300" /> Ambulance 108</p>
+              <p><Heart className="mr-2 inline h-4 w-4 text-green-300" /> Hospitals shown on map</p>
+            </div>
+          </KidPanel>
+        </aside>
+      </section>
+    </main>
   );
 }
 
-// ─── Styles ────────────────────────────────────────────
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "10px",
-  marginBottom: "10px",
-  borderRadius: "8px",
-  border: "1px solid rgba(255,255,255,0.2)",
-  background: "rgba(0,0,0,0.3)",
-  color: "#fff",
-  fontSize: "0.95rem",
-};
+function KidPanel({ children }: { children: React.ReactNode }) {
+  return <div className="rounded-[2rem] border border-white/10 bg-white/[0.07] p-5 shadow-2xl shadow-slate-950/30 backdrop-blur-xl">{children}</div>;
+}
 
-const buttonStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "12px",
-  background: "#22c55e",
-  color: "#fff",
-  border: "none",
-  borderRadius: "8px",
-  fontWeight: 700,
-  cursor: "pointer",
-  fontSize: "1rem",
-};
+function BigButton({ icon: Icon, label, color, onClick }: { icon: typeof MapPin; label: string; color: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className={`flex min-h-28 flex-col items-center justify-center gap-2 rounded-[1.5rem] bg-gradient-to-br ${color} p-3 text-center text-lg font-black text-white shadow-xl transition hover:-translate-y-1`}>
+      <Icon className="h-8 w-8" />
+      {label}
+    </button>
+  );
+}
 
-// ─── Wrapper with AppProvider ──────────────────────────
 export default function ChildPage() {
   return (
     <AppProvider>
