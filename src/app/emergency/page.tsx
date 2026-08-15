@@ -572,7 +572,7 @@ function EmergencyPageContent() {
     <div className="h-screen flex flex-col overflow-hidden bg-slate-950 text-white">
 
       {/* ── HEADER ── */}
-      <div className="flex-shrink-0 px-6 py-3 flex items-center justify-between border-b border-white/10 bg-slate-900/70 backdrop-blur-xl">
+            <div className="relative z-[1100] flex-shrink-0 px-6 py-3 flex items-center justify-between border-b border-white/10 bg-slate-900/70 backdrop-blur-xl">
         <div className="flex items-center gap-4">
           <button
             onClick={() => (window.location.href = "/login")}
