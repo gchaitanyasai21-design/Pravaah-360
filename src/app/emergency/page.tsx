@@ -4,112 +4,38 @@ import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/store/AuthContext";
 import { AppProvider } from "@/store/AppContext";
+import { getDistanceMeters } from "@/lib/distance";
+import {
+  INDIA_CITIES,
+  DEFAULT_CITY,
+  findNearestCity,
+  getHospitalsWithDistance,
+  getAmbulancesForCity,
+  getSignalsForCity,
+  type IndianCity,
+} from "@/lib/indiaCities";
 import {
   AlertTriangle, Phone, MapPin, Clock,
   Activity, Siren, Hospital, Shield,
   Zap, ArrowLeft, Truck, CheckCircle,
-  Navigation, Radio, Users, LogOut
+  Navigation, Radio, Users, LogOut, ChevronDown
 } from "lucide-react";
 
-// Dynamic Map Import
 const LiveMap = dynamic(
   () => import("@/components/LiveMap"),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full bg-slate-900
-      flex items-center justify-center rounded-xl">
+      <div className="w-full h-full bg-slate-900 flex items-center justify-center rounded-xl">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-blue-400
-          border-t-transparent rounded-full animate-spin" />
-          <p className="text-blue-300 text-sm font-medium">
-            Loading Map...
-          </p>
+          <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-blue-300 text-sm font-medium">Loading Map...</p>
         </div>
       </div>
     )
   }
 );
 
-// ✅ 15 REAL Vijayawada Hospitals
-const HOSPITALS = [
-  { id: "H1",  name: "Aster Ramesh Hospital",
-    lat: 16.5109, lng: 80.6395,
-    beds: 15, distance: "1.8 km", time: "6 min",
-    type: "Private",    status: "Available" },
-  { id: "H2",  name: "Manipal Hospital Vijayawada",
-    lat: 16.5449, lng: 80.6440,
-    beds: 20, distance: "4.2 km", time: "14 min",
-    type: "Private",    status: "Available" },
-  { id: "H3",  name: "Andhra Hospitals",
-    lat: 16.5033, lng: 80.6510,
-    beds: 12, distance: "1.5 km", time: "6 min",
-    type: "Private",    status: "Available" },
-  { id: "H4",  name: "Government General Hospital",
-    lat: 16.5089, lng: 80.6187,
-    beds: 30, distance: "2.1 km", time: "8 min",
-    type: "Government", status: "Available" },
-  { id: "H5",  name: "Nagarjuna Hospital",
-    lat: 16.4856, lng: 80.6917,
-    beds: 10, distance: "5.5 km", time: "18 min",
-    type: "Private",    status: "Available" },
-  { id: "H6",  name: "Rainbow Children's Hospital",
-    lat: 16.5017, lng: 80.6557,
-    beds: 8,  distance: "2.3 km", time: "8 min",
-    type: "Private",    status: "Available" },
-  { id: "H7",  name: "KIMS Hospital Vijayawada",
-    lat: 16.5151, lng: 80.6429,
-    beds: 18, distance: "2.5 km", time: "9 min",
-    type: "Private",    status: "Available" },
-  { id: "H8",  name: "LV Prasad Eye Institute",
-    lat: 16.4898, lng: 80.6652,
-    beds: 6,  distance: "3.2 km", time: "11 min",
-    type: "Private",    status: "Available" },
-  { id: "H9",  name: "Capital Hospitals",
-    lat: 16.5085, lng: 80.7004,
-    beds: 14, distance: "4.8 km", time: "16 min",
-    type: "Private",    status: "Available" },
-  { id: "H10", name: "Kamineni Hospital",
-    lat: 16.4930, lng: 80.6710,
-    beds: 11, distance: "3.8 km", time: "13 min",
-    type: "Private",    status: "Available" },
-  { id: "H11", name: "Sentini Hospitals",
-    lat: 16.5175, lng: 80.6318,
-    beds: 9,  distance: "2.8 km", time: "10 min",
-    type: "Private",    status: "Available" },
-  { id: "H12", name: "NRI Medical College",
-    lat: 16.4429, lng: 80.6220,
-    beds: 25, distance: "8.5 km", time: "22 min",
-    type: "Private",    status: "Available" },
-  { id: "H13", name: "Ramesh Hospitals",
-    lat: 16.5109, lng: 80.6395,
-    beds: 15, distance: "1.9 km", time: "7 min",
-    type: "Private",    status: "Available" },
-  { id: "H14", name: "Lalitha Super Speciality",
-    lat: 16.5266, lng: 80.6199,
-    beds: 13, distance: "3.1 km", time: "11 min",
-    type: "Private",    status: "Available" },
-  { id: "H15", name: "Vijaya Super Specialty",
-    lat: 16.4972, lng: 80.6467,
-    beds: 10, distance: "2.4 km", time: "9 min",
-    type: "Private",    status: "Available" },
-];
-
-// ✅ Ambulances at hospitals
-const INITIAL_AMBULANCES = [
-  { id: "AMB-001", lat: 16.5109, lng: 80.6395,
-    status: "Available", hospital: "Aster Ramesh" },
-  { id: "AMB-002", lat: 16.5449, lng: 80.6440,
-    status: "Available", hospital: "Manipal" },
-  { id: "AMB-003", lat: 16.5089, lng: 80.6187,
-    status: "Available", hospital: "Government General" },
-  { id: "AMB-004", lat: 16.5033, lng: 80.6510,
-    status: "Available", hospital: "Andhra Hospitals" },
-  { id: "AMB-005", lat: 16.5151, lng: 80.6429,
-    status: "Available", hospital: "KIMS" },
-];
-
-// ✅ Assigned Ambulance Info
 const ASSIGNED_AMBULANCE = {
   id: "AMB-SOS",
   driver: {
@@ -125,38 +51,17 @@ const ASSIGNED_AMBULANCE = {
   },
 };
 
-// ✅ Signal Type
 interface SignalState {
   id: string;
   lat: number;
   lng: number;
   name: string;
-  color: "red" | "green";
+  color: "red" | "yellow" | "green";
   crossed: boolean;
 }
 
-// ✅ Initial Signals - ALL RED, NOT crossed
-const INITIAL_SIGNALS: SignalState[] = [
-  { id: "S1", lat: 16.5062, lng: 80.6480,
-    name: "Benz Circle",
-    color: "red", crossed: false },
-  { id: "S2", lat: 16.5121, lng: 80.6339,
-    name: "Kanaka Durga Flyover",
-    color: "red", crossed: false },
-  { id: "S3", lat: 16.5033, lng: 80.6410,
-    name: "MG Road Junction",
-    color: "red", crossed: false },
-  { id: "S4", lat: 16.5089, lng: 80.6520,
-    name: "Ramavarappadu Ring",
-    color: "red", crossed: false },
-  { id: "S5", lat: 16.4989, lng: 80.6431,
-    name: "Autonagar Signal",
-    color: "red", crossed: false },
-];
-
 type Stage = "idle" | "dispatched" | "arrived" | "picked" | "hospital";
 
-// ─── Helper ────────────────────────────────────────────────
 function manhattanDist(
   a: { lat: number; lng: number },
   b: { lat: number; lng: number }
@@ -164,20 +69,42 @@ function manhattanDist(
   return Math.abs(a.lat - b.lat) + Math.abs(a.lng - b.lng);
 }
 
-// ─── Main Component ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// ✅ ROUTE JUNCTION ENGINE
+// Places 4 junctions ON the actual ambulance route
+// → lights ALWAYS change as ambulance passes through them
+// ═══════════════════════════════════════════════════════════
+function generateRouteSignals(
+  start: { lat: number; lng: number },
+  end: { lat: number; lng: number }
+): SignalState[] {
+  const fractions = [0.2, 0.4, 0.6, 0.8];
+  return fractions.map((f, i) => ({
+    id: `RJ-${i + 1}`,
+    lat: start.lat + (end.lat - start.lat) * f,
+    lng: start.lng + (end.lng - start.lng) * f,
+    name: `Junction ${i + 1}`,
+    color: "red" as const,
+    crossed: false,
+  }));
+}
+
 function EmergencyPageContent() {
   const { login } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // ✅ Real GPS Location
+  // 🇮🇳 City state (auto-detected from GPS, or manually selected)
+  const [currentCity, setCurrentCity] = useState<IndianCity>(DEFAULT_CITY);
+  const [showCitySelector, setShowCitySelector] = useState(false);
+  const manualCityOverride = useRef(false);
+
   const [userLocation, setUserLocation] = useState({
-    lat: 16.5062, lng: 80.6480,
+    lat: DEFAULT_CITY.lat, lng: DEFAULT_CITY.lng,
   });
   const [locationStatus, setLocationStatus] = useState<
     "detecting" | "active" | "denied"
   >("detecting");
 
-  // SOS State
   const [sosActive, setSosActive]       = useState(false);
   const [stage, setStage]               = useState<Stage>("idle");
   const [eta, setEta]                   = useState(0);
@@ -185,25 +112,59 @@ function EmergencyPageContent() {
   const [isHolding, setIsHolding]       = useState(false);
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ✅ Signal State - with crossed flag
   const [signalStates, setSignalStates] =
-    useState<SignalState[]>(INITIAL_SIGNALS);
+    useState<SignalState[]>(() => getSignalsForCity(DEFAULT_CITY));
   const [signalJump, setSignalJump] = useState(false);
 
-  // Ambulance State
   const [ambulancePos, setAmbulancePos] = useState({
     lat: 16.5109, lng: 80.6395,
   });
+
+  const [ambulanceDestination, setAmbulanceDestination] = useState({
+    lat: DEFAULT_CITY.lat, lng: DEFAULT_CITY.lng,
+  });
+
+  // ✅ Adaptive distance zones
+  const [greenZone, setGreenZone]   = useState(250);
+  const [yellowZone, setYellowZone] = useState(600);
+
   const [showResponderAmbulance, setShowResponderAmbulance] =
     useState(false);
-  const [selectedHospital, setSelectedHospital] =
-    useState(HOSPITALS[3]);
+
+  // ✅ City-derived data
+  const HOSPITALS = getHospitalsWithDistance(
+    currentCity, userLocation.lat, userLocation.lng
+  );
+  const CITY_AMBULANCES = getAmbulancesForCity(currentCity);
+
+  const [selectedHospital, setSelectedHospital] = useState(
+    () => getHospitalsWithDistance(DEFAULT_CITY, DEFAULT_CITY.lat, DEFAULT_CITY.lng)[0]
+  );
   const [assignedAmbulanceId, setAssignedAmbulanceId] =
     useState<string | null>(null);
 
-  // Refs for animation intervals
   const ambulanceIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const signalTimeoutsRef    = useRef<NodeJS.Timeout[]>([]);
+
+  // ═══════════════════════════════════════════════════════════
+  // ✅ FIX 1: Always-fresh values for the signal engine
+  // (prevents the 300ms interval from being destroyed on every move)
+  // ═══════════════════════════════════════════════════════════
+  const liveRef = useRef({
+    ambulancePos,
+    ambulanceDestination,
+    greenZone,
+    yellowZone,
+  });
+
+  useEffect(() => {
+    liveRef.current = {
+      ambulancePos,
+      ambulanceDestination,
+      greenZone,
+      yellowZone,
+    };
+  }, [ambulancePos, ambulanceDestination, greenZone, yellowZone]);
 
   // ── Auth ────────────────────────────────────────────────
   useEffect(() => {
@@ -211,7 +172,7 @@ function EmergencyPageContent() {
     setIsAuthenticated(true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Real GPS ────────────────────────────────────────────
+  // ── Real GPS + auto city detection ──────────────────────
   useEffect(() => {
     if (!navigator.geolocation) {
       setLocationStatus("denied");
@@ -219,17 +180,32 @@ function EmergencyPageContent() {
     }
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        setUserLocation({
+        const newLoc = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-        });
+        };
+        setUserLocation(newLoc);
         setLocationStatus("active");
+
+        if (!manualCityOverride.current) {
+          setCurrentCity(findNearestCity(newLoc.lat, newLoc.lng));
+        }
       },
       () => setLocationStatus("denied"),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 }
     );
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
+
+  // ── When city changes: refresh idle signals + hospital ──
+  useEffect(() => {
+    if (sosActive) return; // never disturb an active emergency
+    setSignalStates(getSignalsForCity(currentCity));
+    const hosp = getHospitalsWithDistance(
+      currentCity, userLocation.lat, userLocation.lng
+    );
+    if (hosp.length > 0) setSelectedHospital(hosp[0]);
+  }, [currentCity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cleanup on unmount ──────────────────────────────────
   useEffect(() => {
@@ -240,138 +216,121 @@ function EmergencyPageContent() {
     };
   }, []);
 
-  // ✅ ONE-BY-ONE Smart Signal Logic
-  // Runs every 500ms while SOS is active
+  // ═══════════════════════════════════════════════════════════
+  // ✅ FIX 2: SIGNAL ENGINE — stable interval via liveRef
+  // 🔴 RED / 🟡 YELLOW / 🟢 GREEN / ✅ CROSSED
+  // Depends ONLY on sosActive → never starved by ambulance moves
+  // ═══════════════════════════════════════════════════════════
   useEffect(() => {
     if (!sosActive) return;
 
     const interval = setInterval(() => {
-      setSignalStates((prev) => {
-        // Find which signal is NEAREST to ambulance
-        // and NOT yet crossed
-        let nearestId: string | null = null;
-        let nearestDist = Infinity;
+      const {
+        ambulancePos: amb,
+        ambulanceDestination: dest,
+        greenZone: gz,
+        yellowZone: yz,
+      } = liveRef.current;
 
-        prev.forEach((signal) => {
-          if (signal.crossed) return;
-          const dist = manhattanDist(ambulancePos, signal);
-          if (dist < nearestDist) {
-            nearestDist = dist;
-            nearestId = signal.id;
-          }
-        });
-
-        return prev.map((signal) => {
-          // ✅ Already crossed = stay RED
-          if (signal.crossed) {
-            return { ...signal, color: "red" as const };
-          }
-
-          const distToSignal = manhattanDist(
-            ambulancePos, signal
-          );
-          const distAmbToUser = manhattanDist(
-            ambulancePos, userLocation
+      setSignalStates((prev) =>
+        prev.map((signal) => {
+          const distanceMeters = getDistanceMeters(
+            amb.lat, amb.lng, signal.lat, signal.lng
           );
 
-          // ✅ Ambulance has PASSED this signal
-          // (ambulance is now closer to destination
-          //  than this signal is)
-          const hasPassed =
-            distAmbToUser < distToSignal - 0.002;
+          const distAmbToDest = getDistanceMeters(
+            amb.lat, amb.lng, dest.lat, dest.lng
+          );
 
-          if (hasPassed) {
-            // Mark as crossed → turns RED
-            return {
-              ...signal,
-              color: "red" as const,
-              crossed: true,
-            };
+          const distSignalToDest = getDistanceMeters(
+            signal.lat, signal.lng, dest.lat, dest.lng
+          );
+
+          // ✅ Signal is behind ambulance → CROSSED
+          const isBehind =
+            distAmbToDest < distSignalToDest &&
+            distanceMeters > gz;
+
+          if (isBehind) {
+            return { ...signal, color: "red" as const, crossed: true };
           }
 
-          // ✅ This is the NEAREST upcoming signal
-          // AND ambulance is within 0.012 distance
-          if (
-            signal.id === nearestId &&
-            nearestDist < 0.012
-          ) {
-            return { ...signal, color: "green" as const };
+          // 🟢 Ambulance very close → GREEN
+          if (distanceMeters <= gz) {
+            return { ...signal, color: "green" as const, crossed: false };
           }
 
-          // Everything else stays RED
-          return { ...signal, color: "red" as const };
-        });
-      });
-    }, 500);
+          // 🟡 Ambulance approaching → YELLOW
+          if (distanceMeters <= yz) {
+            return { ...signal, color: "yellow" as const, crossed: false };
+          }
+
+          // 🔴 Far away → RED
+          return { ...signal, color: "red" as const, crossed: false };
+        })
+      );
+    }, 300);
 
     return () => clearInterval(interval);
-  }, [sosActive, ambulancePos, userLocation]);
+  }, [sosActive]);
 
-  // ✅ Signal Jump - ONE BY ONE with delay
+  // ── Signal Jump Mode ────────────────────────────────────
   const activateSignalJump = () => {
-    // Clear any existing timeouts
     signalTimeoutsRef.current.forEach(clearTimeout);
     signalTimeoutsRef.current = [];
 
     setSignalJump(true);
 
-    // Reset all signals first
-    setSignalStates(
-      INITIAL_SIGNALS.map((s) => ({
-        ...s,
-        color: "red" as const,
-        crossed: false,
-      }))
-    );
+    const signalsToAnimate = signalStates.map((s) => ({
+      ...s,
+      color: "red" as const,
+      crossed: false,
+    }));
+    setSignalStates(signalsToAnimate);
 
-    // ✅ Turn each signal GREEN one by one
-    // Then RED after 8 seconds (ambulance crossed)
-    INITIAL_SIGNALS.forEach((signal, index) => {
-      // Turn GREEN after index * 3 seconds
+    signalsToAnimate.forEach((signal, index) => {
+      const baseDelay = index * 3000;
+
+      const yellowTimeout = setTimeout(() => {
+        setSignalStates((prev) =>
+          prev.map((s) =>
+            s.id === signal.id ? { ...s, color: "yellow" as const } : s
+          )
+        );
+      }, baseDelay);
+
       const greenTimeout = setTimeout(() => {
         setSignalStates((prev) =>
           prev.map((s) =>
-            s.id === signal.id
-              ? { ...s, color: "green" as const }
-              : s
+            s.id === signal.id ? { ...s, color: "green" as const } : s
           )
         );
-      }, index * 3000);
+      }, baseDelay + 1500);
 
-      // Turn RED after green + 8 seconds (crossed)
       const redTimeout = setTimeout(() => {
         setSignalStates((prev) =>
           prev.map((s) =>
             s.id === signal.id
-              ? {
-                  ...s,
-                  color: "red" as const,
-                  crossed: true,
-                }
+              ? { ...s, color: "red" as const, crossed: true }
               : s
           )
         );
-      }, index * 3000 + 8000);
+      }, baseDelay + 8000);
 
-      signalTimeoutsRef.current.push(greenTimeout, redTimeout);
+      signalTimeoutsRef.current.push(yellowTimeout, greenTimeout, redTimeout);
     });
 
-    // Reset everything after all signals done
     const resetTimeout = setTimeout(() => {
       setSignalJump(false);
-      setSignalStates(
-        INITIAL_SIGNALS.map((s) => ({
-          ...s,
-          color: "red" as const,
-          crossed: false,
-        }))
+      setSignalStates((prev) =>
+        prev.map((s) => ({ ...s, color: "red" as const, crossed: false }))
       );
-    }, INITIAL_SIGNALS.length * 3000 + 8000);
+    }, signalsToAnimate.length * 3000 + 8000);
 
     signalTimeoutsRef.current.push(resetTimeout);
   };
 
-  // ✅ Hold SOS Button Logic
+  // ── Hold SOS ────────────────────────────────────────────
   const startHold = () => {
     if (sosActive) return;
     setIsHolding(true);
@@ -394,13 +353,12 @@ function EmergencyPageContent() {
     setHoldProgress(0);
   };
 
-  // ✅ Trigger SOS
+  // ── Trigger SOS ─────────────────────────────────────────
   const triggerSOS = () => {
-    // Find nearest ambulance
-    let nearestAmb = INITIAL_AMBULANCES[0];
-    let minDist = manhattanDist(userLocation, INITIAL_AMBULANCES[0]);
+    let nearestAmb = CITY_AMBULANCES[0];
+    let minDist = manhattanDist(userLocation, CITY_AMBULANCES[0]);
 
-    INITIAL_AMBULANCES.forEach((amb) => {
+    CITY_AMBULANCES.forEach((amb) => {
       const dist = manhattanDist(userLocation, amb);
       if (dist < minDist) {
         minDist = dist;
@@ -415,19 +373,34 @@ function EmergencyPageContent() {
     setShowResponderAmbulance(true);
     setAmbulancePos({ lat: nearestAmb.lat, lng: nearestAmb.lng });
 
-    // Activate signal jump sequence
-    activateSignalJump();
+    setAmbulanceDestination({
+      lat: userLocation.lat,
+      lng: userLocation.lng,
+    });
 
-    // Start moving ambulance
+    // ✅ Junctions ON the pickup route
+    const routeLen = getDistanceMeters(
+      nearestAmb.lat, nearestAmb.lng,
+      userLocation.lat, userLocation.lng
+    );
+    setGreenZone(Math.max(60, Math.min(250, routeLen * 0.10)));
+    setYellowZone(Math.max(150, Math.min(600, routeLen * 0.30)));
+    setSignalStates(
+      generateRouteSignals(
+        { lat: nearestAmb.lat, lng: nearestAmb.lng },
+        userLocation
+      )
+    );
+
     animateAmbulanceToUser(nearestAmb);
   };
 
-  // ✅ Animate Ambulance → User
+  // ── Animate Ambulance → User ────────────────────────────
   const animateAmbulanceToUser = (
-    startAmb: typeof INITIAL_AMBULANCES[0]
+    startAmb: { id: string; lat: number; lng: number }
   ) => {
     const start = { lat: startAmb.lat, lng: startAmb.lng };
-    const end   = userLocation;
+    const end   = { lat: userLocation.lat, lng: userLocation.lng };
     const steps = 40;
     let step = 0;
 
@@ -450,21 +423,36 @@ function EmergencyPageContent() {
 
         setTimeout(() => {
           setStage("picked");
-          setTimeout(() => animateToHospital(), 2000);
+          // ✅ pass CURRENT position explicitly (no stale state)
+          setTimeout(() => animateToHospital(end), 2000);
         }, 2000);
       }
     }, 300);
   };
 
-  // ✅ Animate Ambulance → Hospital
-  const animateToHospital = () => {
+  // ── Animate Ambulance → Hospital ────────────────────────
+  const animateToHospital = (currentPos: { lat: number; lng: number }) => {
     setStage("hospital");
-    const start = { ...ambulancePos };
-    const end   = {
+
+    const hospitalDest = {
       lat: selectedHospital.lat,
       lng: selectedHospital.lng,
     };
-    const steps = 30;
+
+    setAmbulanceDestination(hospitalDest);
+
+    // ✅ Fresh junctions ON the hospital route
+    const routeLen = getDistanceMeters(
+      currentPos.lat, currentPos.lng,
+      hospitalDest.lat, hospitalDest.lng
+    );
+    setGreenZone(Math.max(60, Math.min(250, routeLen * 0.10)));
+    setYellowZone(Math.max(150, Math.min(600, routeLen * 0.30)));
+    setSignalStates(generateRouteSignals(currentPos, hospitalDest));
+
+    const start = { ...currentPos };
+    const end   = hospitalDest;
+    const steps = 40;
     let step = 0;
     setEta(6);
 
@@ -493,23 +481,17 @@ function EmergencyPageContent() {
             `Thank you for using Pravaah 360!`
           );
 
-          // ✅ Full Reset
           setSosActive(false);
           setStage("idle");
           setShowResponderAmbulance(false);
           setAssignedAmbulanceId(null);
           setSignalJump(false);
 
-          // ✅ Reset all signals including crossed
-          setSignalStates(
-            INITIAL_SIGNALS.map((s) => ({
-              ...s,
-              color: "red" as const,
-              crossed: false,
-            }))
-          );
+          // ✅ Restore CURRENT CITY's idle signals
+          setSignalStates(getSignalsForCity(currentCity));
+          setGreenZone(250);
+          setYellowZone(600);
 
-          // Clear signal timeouts
           signalTimeoutsRef.current.forEach(clearTimeout);
           signalTimeoutsRef.current = [];
 
@@ -518,7 +500,6 @@ function EmergencyPageContent() {
     }, 300);
   };
 
-  // ✅ Logout
   const handleBackToLogin = () => {
     try {
       localStorage.clear();
@@ -529,11 +510,8 @@ function EmergencyPageContent() {
     window.location.href = "/login";
   };
 
-  // Map ambulances
   const mapAmbulances = [
-    ...INITIAL_AMBULANCES.filter(
-      (a) => a.id !== assignedAmbulanceId
-    ),
+    ...CITY_AMBULANCES.filter((a) => a.id !== assignedAmbulanceId),
     ...(showResponderAmbulance
       ? [{
           id: "AMB-SOS",
@@ -544,7 +522,6 @@ function EmergencyPageContent() {
       : []),
   ];
 
-  // Stage config for status card
   const stageConfig = {
     idle: {
       bg: "bg-blue-900/40",
@@ -580,12 +557,9 @@ function EmergencyPageContent() {
 
   if (!isAuthenticated) {
     return (
-      <div className="h-screen bg-slate-950 flex items-center
-      justify-center">
+      <div className="h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-400
-          border-t-transparent rounded-full animate-spin
-          mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-blue-200 font-medium">
             Loading Emergency Services...
           </p>
@@ -595,43 +569,29 @@ function EmergencyPageContent() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden
-    bg-slate-950 text-white">
+    <div className="h-screen flex flex-col overflow-hidden bg-slate-950 text-white">
 
       {/* ── HEADER ── */}
-      <div className="flex-shrink-0 px-6 py-3 flex items-center
-      justify-between border-b border-white/10
-      bg-slate-900/70 backdrop-blur-xl">
-
+      <div className="flex-shrink-0 px-6 py-3 flex items-center justify-between border-b border-white/10 bg-slate-900/70 backdrop-blur-xl">
         <div className="flex items-center gap-4">
-          {/* Back Button */}
           <button
             onClick={() => (window.location.href = "/login")}
-            className="flex items-center gap-2 px-3 py-1.5
-            rounded-lg text-sm font-medium
-            bg-blue-500/15 border border-blue-400/30
-            text-blue-200 hover:bg-blue-500/25 transition"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-500/15 border border-blue-400/30 text-blue-200 hover:bg-blue-500/25 transition"
           >
             <ArrowLeft size={14} />
             Back
           </button>
 
-          {/* Title */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center
-            justify-center bg-gradient-to-br
-            from-red-500 to-orange-500
-            shadow-lg shadow-red-500/30">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-red-500 to-orange-500 shadow-lg shadow-red-500/30">
               <Siren size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="font-black text-white text-lg
-              leading-none">
+              <h1 className="font-black text-white text-lg leading-none">
                 Pravaah Emergency
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
-                <div className={`w-1.5 h-1.5 rounded-full
-                animate-pulse ${
+                <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
                   locationStatus === "active"
                     ? "bg-green-400"
                     : locationStatus === "detecting"
@@ -643,51 +603,78 @@ function EmergencyPageContent() {
                     ? "Live GPS Active"
                     : locationStatus === "detecting"
                     ? "Detecting Location..."
-                    : "Using Vijayawada Default"}
+                    : `Using ${currentCity.name} Default`}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Coordinates */}
-        <div className="flex items-center gap-2 px-4 py-2
-        rounded-xl bg-blue-500/10 border border-blue-400/20">
-          <Navigation size={14} className="text-blue-400" />
-          <span className="text-xs text-blue-300">
-            {userLocation.lat.toFixed(4)},{" "}
-            {userLocation.lng.toFixed(4)}
-          </span>
+        {/* 🇮🇳 City Selector + Coordinates */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <button
+              onClick={() => setShowCitySelector(!showCitySelector)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/15 border border-purple-400/30 text-purple-200 hover:bg-purple-500/25 transition"
+            >
+              <MapPin size={14} />
+              <span className="text-xs font-bold">🇮🇳 {currentCity.name}</span>
+              <ChevronDown size={12} />
+            </button>
+
+            {showCitySelector && (
+              <div className="absolute top-full mt-2 left-0 w-56 z-50 bg-slate-900 border border-white/10 rounded-xl shadow-2xl max-h-72 overflow-y-auto">
+                <div className="p-2 border-b border-white/10">
+                  <p className="text-xs text-blue-300 font-bold uppercase px-2">
+                    Select City
+                  </p>
+                </div>
+                {INDIA_CITIES.map((city) => (
+                  <button
+                    key={city.name}
+                    onClick={() => {
+                      manualCityOverride.current = true;
+                      setCurrentCity(city);
+                      setUserLocation({ lat: city.lat, lng: city.lng });
+                      setShowCitySelector(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 transition hover:bg-blue-500/20 border-b border-white/5 ${
+                      currentCity.name === city.name ? "bg-blue-500/20" : ""
+                    }`}
+                  >
+                    <p className="text-sm text-white font-medium">{city.name}</p>
+                    <p className="text-xs text-blue-400">{city.state}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-400/20">
+            <Navigation size={14} className="text-blue-400" />
+            <span className="text-xs text-blue-300">
+              {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
+            </span>
+          </div>
         </div>
 
-        {/* Right Actions */}
         <div className="flex items-center gap-3">
           {sosActive && (
-            <div className="flex items-center gap-2 px-3 py-1.5
-            rounded-full bg-red-600 animate-pulse">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-600 animate-pulse">
               <Radio size={12} className="text-white" />
-              <span className="text-xs font-bold text-white">
-                LIVE SOS
-              </span>
+              <span className="text-xs font-bold text-white">LIVE SOS</span>
             </div>
           )}
           <button
             onClick={() => window.open("tel:108")}
-            className="flex items-center gap-2 px-4 py-2
-            rounded-xl font-bold text-sm text-white
-            bg-gradient-to-r from-red-600 to-red-700
-            shadow-lg hover:from-red-700 hover:to-red-800"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-red-600 to-red-700 shadow-lg hover:from-red-700 hover:to-red-800"
           >
             <Phone size={14} />
             Call 108
           </button>
           <button
             onClick={handleBackToLogin}
-            className="flex items-center gap-2 px-4 py-2
-            rounded-xl bg-gradient-to-r
-            from-orange-500 to-red-500 text-white
-            font-semibold shadow-lg
-            hover:scale-105 transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold shadow-lg hover:scale-105 transition-all"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Logout</span>
@@ -699,19 +686,14 @@ function EmergencyPageContent() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── LEFT PANEL ── */}
-        <div className="w-72 flex flex-col overflow-y-auto
-        flex-shrink-0 border-r border-white/10
-        bg-slate-900/70">
+        <div className="w-72 flex flex-col overflow-y-auto flex-shrink-0 border-r border-white/10 bg-slate-900/70">
 
           {/* Status Card */}
           <div className="p-4 border-b border-white/10">
-            <div className={`rounded-xl p-4 border
-            ${stageConfig[stage].bg}
-            ${stageConfig[stage].border}`}>
+            <div className={`rounded-xl p-4 border ${stageConfig[stage].bg} ${stageConfig[stage].border}`}>
               <div className="flex items-center gap-2 mb-2">
                 {stageConfig[stage].icon}
-                <span className="text-xs font-bold uppercase
-                tracking-wider text-blue-300">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-300">
                   Status
                 </span>
               </div>
@@ -719,24 +701,17 @@ function EmergencyPageContent() {
                 {stageConfig[stage].text}
               </p>
               {eta > 0 && (
-                <div className="flex items-center gap-2 mt-3
-                pt-3 border-t border-white/10">
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10">
                   <Clock size={14} className="text-yellow-400" />
-                  <span className="text-3xl font-black
-                  text-yellow-400">
-                    {eta}
-                  </span>
-                  <span className="text-blue-300 text-sm">
-                    min ETA
-                  </span>
+                  <span className="text-3xl font-black text-yellow-400">{eta}</span>
+                  <span className="text-blue-300 text-sm">min ETA</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* SOS Hold Button */}
-          <div className="p-5 border-b border-white/10
-          flex flex-col items-center gap-3">
+          <div className="p-5 border-b border-white/10 flex flex-col items-center gap-3">
             <div className="relative">
               <button
                 onMouseDown={startHold}
@@ -745,50 +720,37 @@ function EmergencyPageContent() {
                 onTouchStart={startHold}
                 onTouchEnd={stopHold}
                 disabled={sosActive}
-                className="w-32 h-32 rounded-full font-black
-                text-white flex flex-col items-center
-                justify-center gap-2 transition-all
-                select-none relative overflow-hidden"
+                className="w-32 h-32 rounded-full font-black text-white flex flex-col items-center justify-center gap-2 transition-all select-none relative overflow-hidden"
                 style={{
                   background: sosActive
                     ? "rgba(75,85,99,0.5)"
                     : "linear-gradient(135deg,#dc2626,#991b1b)",
                   boxShadow: sosActive
                     ? "none"
-                    : "0 0 30px rgba(220,38,38,0.5)," +
-                      "0 0 60px rgba(220,38,38,0.2)",
+                    : "0 0 30px rgba(220,38,38,0.5), 0 0 60px rgba(220,38,38,0.2)",
                   cursor: sosActive ? "not-allowed" : "pointer",
                 }}
               >
                 {isHolding && (
-                  <svg
-                    className="absolute inset-0 w-full h-full
-                    -rotate-90"
-                    viewBox="0 0 100 100"
-                  >
+                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
                     <circle
                       cx="50" cy="50" r="46"
                       fill="none"
                       stroke="rgba(255,255,255,0.9)"
                       strokeWidth="5"
-                      strokeDasharray={
-                        `${holdProgress * 2.89} 289`
-                      }
+                      strokeDasharray={`${holdProgress * 2.89} 289`}
                       strokeLinecap="round"
                     />
                   </svg>
                 )}
                 <AlertTriangle size={30} />
-                <span className="text-xs font-black
-                tracking-wide">
+                <span className="text-xs font-black tracking-wide">
                   {sosActive ? "ACTIVE" : "HOLD SOS"}
                 </span>
               </button>
 
               {sosActive && (
-                <div className="absolute inset-0 rounded-full
-                border-4 border-red-500 animate-ping
-                opacity-40" />
+                <div className="absolute inset-0 rounded-full border-4 border-red-500 animate-ping opacity-40" />
               )}
             </div>
             <p className="text-xs text-blue-400 text-center">
@@ -800,9 +762,7 @@ function EmergencyPageContent() {
           <div className="p-4 border-b border-white/10">
             <button
               onClick={activateSignalJump}
-              className="w-full py-3 rounded-xl font-bold
-              text-sm flex items-center justify-center
-              gap-2 transition-all text-white"
+              className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all text-white"
               style={{
                 background: signalJump
                   ? "linear-gradient(135deg,#16a34a,#15803d)"
@@ -811,123 +771,116 @@ function EmergencyPageContent() {
               }}
             >
               <Zap size={16} />
-              {signalJump
-                ? "✅ Sequence Active!"
-                : "⚡ Signal Jump Mode"}
+              {signalJump ? "✅ Sequence Active!" : "⚡ Signal Jump Mode"}
             </button>
-            <p className="text-xs text-blue-400/70 mt-2
-            text-center">
+            <p className="text-xs text-blue-400/70 mt-2 text-center">
               Clears signals one by one on ambulance route
             </p>
           </div>
 
-          {/* ✅ Traffic Signals - with CROSSED state */}
+          {/* Traffic Signals */}
           <div className="p-4 border-b border-white/10">
-            <h3 className="text-xs font-bold text-blue-400
-            uppercase tracking-wider mb-3
-            flex items-center gap-2">
+            <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3 flex items-center gap-2">
               <Activity size={12} />
               Traffic Signals
             </h3>
             <div className="space-y-2">
-              {signalStates.map((signal, index) => (
-                <div
-                  key={signal.id}
-                  className="flex items-center justify-between
-                  rounded-lg px-3 py-2 bg-slate-800/40
-                  border border-white/10"
-                >
-                  {/* Signal number + name */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-400/50
-                    font-mono">
-                      {index + 1}
-                    </span>
-                    <span className="text-xs text-blue-200">
-                      {signal.name}
-                    </span>
-                  </div>
+              {signalStates.map((signal, index) => {
+                const distMeters = sosActive
+                  ? getDistanceMeters(
+                      ambulancePos.lat, ambulancePos.lng,
+                      signal.lat, signal.lng
+                    )
+                  : null;
 
-                  {/* ✅ Status indicator */}
-                  <div className="flex items-center gap-2">
-                    {signal.crossed ? (
-                      // Crossed = grey checkmark
-                      <>
-                        <CheckCircle
-                          size={12}
-                          className="text-gray-500"
-                        />
-                        <span className="text-xs font-bold
-                        text-gray-500">
-                          CROSSED
+                return (
+                  <div
+                    key={signal.id}
+                    className="flex items-center justify-between rounded-lg px-3 py-2 bg-slate-800/40 border border-white/10"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs text-blue-400/50 font-mono">
+                        {index + 1}
+                      </span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs text-blue-200 truncate">
+                          {signal.name}
                         </span>
-                      </>
-                    ) : (
-                      // Not crossed = colored dot
-                      <>
-                        <div
-                          className={`w-3 h-3 rounded-full ${
-                            signal.color === "green"
-                              ? "animate-pulse bg-green-400"
-                              : "bg-red-400"
-                          }`}
-                          style={{
-                            boxShadow:
+                        {distMeters !== null && !signal.crossed && (
+                          <span className="text-[10px] text-blue-400/60 font-mono">
+                            {distMeters < 1000
+                              ? `${Math.round(distMeters)}m`
+                              : `${(distMeters / 1000).toFixed(1)}km`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {signal.crossed ? (
+                        <>
+                          <CheckCircle size={12} className="text-gray-500" />
+                          <span className="text-xs font-bold text-gray-500">
+                            CROSSED
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <div
+                            className={`w-3 h-3 rounded-full animate-pulse ${
                               signal.color === "green"
-                                ? "0 0 8px #4ade80"
-                                : "0 0 8px #f87171",
-                          }}
-                        />
-                        <span className={`text-xs font-bold ${
-                          signal.color === "green"
-                            ? "text-green-400"
-                            : "text-red-400"
-                        }`}>
-                          {signal.color.toUpperCase()}
-                        </span>
-                      </>
-                    )}
+                                ? "bg-green-400"
+                                : signal.color === "yellow"
+                                ? "bg-yellow-400"
+                                : "bg-red-400"
+                            }`}
+                            style={{
+                              boxShadow:
+                                signal.color === "green"
+                                  ? "0 0 10px #4ade80"
+                                  : signal.color === "yellow"
+                                  ? "0 0 10px #facc15"
+                                  : "0 0 10px #f87171",
+                            }}
+                          />
+                          <span
+                            className={`text-xs font-bold ${
+                              signal.color === "green"
+                                ? "text-green-400"
+                                : signal.color === "yellow"
+                                ? "text-yellow-400"
+                                : "text-red-400"
+                            }`}
+                          >
+                            {signal.color.toUpperCase()}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Assigned Ambulance */}
           {sosActive && (
             <div className="p-4 border-b border-white/10">
-              <h3 className="text-xs font-bold text-blue-400
-              uppercase tracking-wider mb-3
-              flex items-center gap-2">
+              <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <Truck size={12} />
                 Assigned Ambulance
               </h3>
-              <div className="rounded-xl p-3 space-y-2
-              bg-slate-800/40 border border-white/10">
+              <div className="rounded-xl p-3 space-y-2 bg-slate-800/40 border border-white/10">
                 {[
-                  ["Vehicle",
-                    ASSIGNED_AMBULANCE.vehicle.number],
-                  ["Type",
-                    ASSIGNED_AMBULANCE.vehicle.type],
-                  ["Driver",
-                    ASSIGNED_AMBULANCE.driver.name],
-                  ["Phone",
-                    ASSIGNED_AMBULANCE.driver.phone],
-                  ["Experience",
-                    ASSIGNED_AMBULANCE.driver.experience],
+                  ["Vehicle", ASSIGNED_AMBULANCE.vehicle.number],
+                  ["Type", ASSIGNED_AMBULANCE.vehicle.type],
+                  ["Driver", ASSIGNED_AMBULANCE.driver.name],
+                  ["Phone", ASSIGNED_AMBULANCE.driver.phone],
+                  ["Experience", ASSIGNED_AMBULANCE.driver.experience],
                 ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="flex justify-between
-                    items-center"
-                  >
-                    <span className="text-xs text-blue-400">
-                      {label}
-                    </span>
-                    <span className="text-xs text-white
-                    font-medium">
-                      {value}
-                    </span>
+                  <div key={label} className="flex justify-between items-center">
+                    <span className="text-xs text-blue-400">{label}</span>
+                    <span className="text-xs text-white font-medium">{value}</span>
                   </div>
                 ))}
               </div>
@@ -937,32 +890,16 @@ function EmergencyPageContent() {
           {/* Quick Actions */}
           <div className="p-4 grid grid-cols-2 gap-2">
             {[
-              {
-                label: "Call 108",
-                icon: Phone,
-                color: "#f87171",
-                action: () => window.open("tel:108"),
-              },
-              {
-                label: "Police 100",
-                icon: Shield,
-                color: "#60a5fa",
-                action: () => window.open("tel:100"),
-              },
-              {
-                label: "Fire 101",
-                icon: Siren,
-                color: "#fb923c",
-                action: () => window.open("tel:101"),
-              },
+              { label: "Call 108",   icon: Phone,  color: "#f87171", action: () => window.open("tel:108") },
+              { label: "Police 100", icon: Shield, color: "#60a5fa", action: () => window.open("tel:100") },
+              { label: "Fire 101",   icon: Siren,  color: "#fb923c", action: () => window.open("tel:101") },
               {
                 label: "Share GPS",
                 icon: MapPin,
                 color: "#4ade80",
                 action: () => {
                   navigator.clipboard.writeText(
-                    `https://maps.google.com?q=` +
-                    `${userLocation.lat},${userLocation.lng}`
+                    `https://maps.google.com?q=${userLocation.lat},${userLocation.lng}`
                   );
                   alert("📍 Location copied to clipboard!");
                 },
@@ -971,15 +908,10 @@ function EmergencyPageContent() {
               <button
                 key={label}
                 onClick={action}
-                className="flex flex-col items-center gap-1.5
-                rounded-xl p-3 transition-all hover:scale-105
-                bg-slate-800/40 border border-white/10"
+                className="flex flex-col items-center gap-1.5 rounded-xl p-3 transition-all hover:scale-105 bg-slate-800/40 border border-white/10"
               >
                 <Icon size={20} style={{ color }} />
-                <span className="text-xs text-blue-200
-                font-medium">
-                  {label}
-                </span>
+                <span className="text-xs text-blue-200 font-medium">{label}</span>
               </button>
             ))}
           </div>
@@ -996,6 +928,8 @@ function EmergencyPageContent() {
                 ? "Normal"
                 : s.color === "green"
                 ? "Normal"
+                : s.color === "yellow"
+                ? "Warning"
                 : "Congested",
             }))}
             sosVehicles={[]}
@@ -1006,36 +940,22 @@ function EmergencyPageContent() {
             zoom={13}
           />
 
-          {/* SOS Status Banner */}
           {sosActive && (
-            <div className="absolute top-4 left-1/2
-            -translate-x-1/2 flex items-center gap-3
-            px-6 py-3 rounded-2xl bg-slate-900/95
-            backdrop-blur border border-red-700 shadow-xl">
-              <div className="w-3 h-3 bg-red-500
-              rounded-full animate-ping" />
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 rounded-2xl bg-slate-900/95 backdrop-blur border border-red-700 shadow-xl z-[1000]">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-ping" />
               <span className="text-white font-bold text-sm">
-                {stage === "dispatched" &&
-                  `🚑 Ambulance En Route · ETA ${eta} min`}
-                {stage === "arrived" &&
-                  "🚑 Ambulance Has Arrived!"}
-                {stage === "picked" &&
-                  "✅ Patient Picked Up Successfully"}
-                {stage === "hospital" &&
-                  `🏥 Heading to ${selectedHospital.name}`}
+                {stage === "dispatched" && `🚑 Ambulance En Route · ETA ${eta} min`}
+                {stage === "arrived"    && "🚑 Ambulance Has Arrived!"}
+                {stage === "picked"     && "✅ Patient Picked Up Successfully"}
+                {stage === "hospital"   && `🏥 Heading to ${selectedHospital.name}`}
               </span>
             </div>
           )}
 
-          {/* Signal Jump Banner */}
           {signalJump && (
-            <div className="absolute bottom-6 left-1/2
-            -translate-x-1/2 flex items-center gap-3
-            px-6 py-3 rounded-2xl bg-green-900/95
-            backdrop-blur border border-green-500 shadow-xl">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 rounded-2xl bg-green-900/95 backdrop-blur border border-green-500 shadow-xl z-[1000]">
               <Zap size={16} className="text-green-400" />
-              <span className="text-green-300 font-bold
-              text-sm">
+              <span className="text-green-300 font-bold text-sm">
                 ⚡ Signal Jump Active — Clearing One By One
               </span>
             </div>
@@ -1043,18 +963,14 @@ function EmergencyPageContent() {
         </div>
 
         {/* ── RIGHT PANEL - HOSPITALS ── */}
-        <div className="w-64 flex flex-col overflow-hidden
-        flex-shrink-0 border-l border-white/10
-        bg-slate-900/70">
-          <div className="p-4 border-b border-white/10
-          flex-shrink-0">
-            <h2 className="font-bold text-white
-            flex items-center gap-2 text-sm">
+        <div className="w-64 flex flex-col overflow-hidden flex-shrink-0 border-l border-white/10 bg-slate-900/70">
+          <div className="p-4 border-b border-white/10 flex-shrink-0">
+            <h2 className="font-bold text-white flex items-center gap-2 text-sm">
               <Hospital size={16} className="text-blue-400" />
               Nearby Hospitals
             </h2>
             <p className="text-xs text-blue-400/70 mt-1">
-              {HOSPITALS.length} hospitals in Vijayawada
+              {HOSPITALS.length} hospitals in {currentCity.name}
             </p>
           </div>
 
@@ -1063,8 +979,7 @@ function EmergencyPageContent() {
               <button
                 key={hospital.id}
                 onClick={() => setSelectedHospital(hospital)}
-                className="w-full text-left rounded-xl p-3
-                transition-all text-xs"
+                className="w-full text-left rounded-xl p-3 transition-all text-xs"
                 style={{
                   background:
                     selectedHospital.id === hospital.id
@@ -1076,13 +991,11 @@ function EmergencyPageContent() {
                       : "1px solid rgba(59,130,246,0.15)",
                 }}
               >
-                <p className="font-bold text-white
-                leading-tight mb-1">
+                <p className="font-bold text-white leading-tight mb-1">
                   {hospital.name}
                 </p>
                 <span
-                  className="inline-block px-1.5 py-0.5
-                  rounded text-xs mb-2"
+                  className="inline-block px-1.5 py-0.5 rounded text-xs mb-2"
                   style={{
                     background:
                       hospital.type === "Government"
@@ -1096,8 +1009,7 @@ function EmergencyPageContent() {
                 >
                   {hospital.type}
                 </span>
-                <div className="flex items-center
-                justify-between text-blue-300/70">
+                <div className="flex items-center justify-between text-blue-300/70">
                   <span className="flex items-center gap-1">
                     <MapPin size={9} />
                     {hospital.distance}
