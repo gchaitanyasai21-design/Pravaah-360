@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useAuth } from "@/store/AuthContext";
 import { AppProvider } from "@/store/AppContext";
 import { getDistanceMeters } from "@/lib/distance";
+import { getRoadRoute } from "@/lib/routing";
 import {
   INDIA_CITIES,
   DEFAULT_CITY,
@@ -70,23 +71,44 @@ function manhattanDist(
 }
 
 // ═══════════════════════════════════════════════════════════
-// ✅ ROUTE JUNCTION ENGINE
-// Places 4 junctions ON the actual ambulance route
-// → lights ALWAYS change as ambulance passes through them
+// ✅ ROUTE JUNCTION ENGINE (Rapido-style)
+// Places 4 junctions ON the ACTUAL ROAD ROUTE returned by OSRM
+// → lights ALWAYS change as ambulance passes through them,
+//   and junction positions now sit on real roads, not a straight line
 // ═══════════════════════════════════════════════════════════
-function generateRouteSignals(
-  start: { lat: number; lng: number },
-  end: { lat: number; lng: number }
+function generateJunctionsOnRoute(
+  route: [number, number][]
 ): SignalState[] {
+  if (route.length < 2) return [];
+
   const fractions = [0.2, 0.4, 0.6, 0.8];
-  return fractions.map((f, i) => ({
-    id: `RJ-${i + 1}`,
-    lat: start.lat + (end.lat - start.lat) * f,
-    lng: start.lng + (end.lng - start.lng) * f,
-    name: `Junction ${i + 1}`,
-    color: "red" as const,
-    crossed: false,
-  }));
+  return fractions.map((f, i) => {
+    const idx = Math.min(
+      route.length - 1,
+      Math.floor(route.length * f)
+    );
+    const [lat, lng] = route[idx];
+    return {
+      id: `RJ-${i + 1}`,
+      lat,
+      lng,
+      name: `Junction ${i + 1}`,
+      color: "red" as const,
+      crossed: false,
+    };
+  });
+}
+
+// ✅ Total road distance (meters) along a route — used for adaptive zones
+function getRouteLength(route: [number, number][]): number {
+  let total = 0;
+  for (let i = 1; i < route.length; i++) {
+    total += getDistanceMeters(
+      route[i - 1][0], route[i - 1][1],
+      route[i][0], route[i][1]
+    );
+  }
+  return total;
 }
 
 function EmergencyPageContent() {
@@ -127,6 +149,9 @@ function EmergencyPageContent() {
   // ✅ Adaptive distance zones
   const [greenZone, setGreenZone]   = useState(250);
   const [yellowZone, setYellowZone] = useState(600);
+
+  // ✅ Rapido-style real road route (OSRM), rendered via LiveMap's `polylines` prop
+  const [routePath, setRoutePath] = useState<[number, number][]>([]);
 
   const [showResponderAmbulance, setShowResponderAmbulance] =
     useState(false);
@@ -342,7 +367,7 @@ function EmergencyPageContent() {
         clearInterval(holdTimerRef.current!);
         setIsHolding(false);
         setHoldProgress(0);
-        triggerSOS();
+        void triggerSOS();
       }
     }, 120);
   };
@@ -353,8 +378,53 @@ function EmergencyPageContent() {
     setHoldProgress(0);
   };
 
-  // ── Trigger SOS ─────────────────────────────────────────
-  const triggerSOS = () => {
+  // ═══════════════════════════════════════════════════════════
+  // ✅ RAPIDO-STYLE ANIMATION ENGINE
+  // Moves the ambulance along a real OSRM route (or the
+  // straight-line fallback from routing.ts if OSRM is down).
+  // Shared by both legs of the trip (pickup + hospital).
+  // ═══════════════════════════════════════════════════════════
+  const animateAlongRoute = (
+    route: [number, number][],
+    startEta: number,
+    onComplete: () => void
+  ) => {
+    if (ambulanceIntervalRef.current) {
+      clearInterval(ambulanceIntervalRef.current);
+    }
+
+    if (route.length < 2) {
+      // Nothing to animate — jump straight to completion.
+      onComplete();
+      return;
+    }
+
+    const steps = Math.min(route.length, 150);
+    const intervalMs = 20000 / steps;
+    let step = 0;
+
+    ambulanceIntervalRef.current = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      const idx = Math.min(
+        route.length - 1,
+        Math.floor(progress * (route.length - 1))
+      );
+      const [lat, lng] = route[idx];
+
+      setAmbulancePos({ lat, lng });
+      setEta(Math.max(0, Math.round(startEta * (1 - progress))));
+
+      if (step >= steps) {
+        clearInterval(ambulanceIntervalRef.current!);
+        ambulanceIntervalRef.current = null;
+        onComplete();
+      }
+    }, intervalMs);
+  };
+
+  // ── Trigger SOS (now async — fetches real road route) ──
+  const triggerSOS = async () => {
     let nearestAmb = CITY_AMBULANCES[0];
     let minDist = manhattanDist(userLocation, CITY_AMBULANCES[0]);
 
@@ -378,60 +448,39 @@ function EmergencyPageContent() {
       lng: userLocation.lng,
     });
 
-    // ✅ Junctions ON the pickup route
-    const routeLen = getDistanceMeters(
-      nearestAmb.lat, nearestAmb.lng,
-      userLocation.lat, userLocation.lng
+    // ✅ Fetch the real road route (falls back to a straight line if OSRM fails)
+    const route = await getRoadRoute(
+      { lat: nearestAmb.lat, lng: nearestAmb.lng },
+      { lat: userLocation.lat, lng: userLocation.lng }
     );
+    setRoutePath(route);
+
+    // ✅ Junctions + zones based on the ACTUAL road distance
+    const routeLen = getRouteLength(route);
     setGreenZone(Math.max(60, Math.min(250, routeLen * 0.10)));
     setYellowZone(Math.max(150, Math.min(600, routeLen * 0.30)));
-    setSignalStates(
-      generateRouteSignals(
-        { lat: nearestAmb.lat, lng: nearestAmb.lng },
-        userLocation
-      )
-    );
+    setSignalStates(generateJunctionsOnRoute(route));
 
-    animateAmbulanceToUser(nearestAmb);
-  };
+    animateAlongRoute(route, 8, () => {
+      setStage("arrived");
+      setEta(0);
 
-  // ── Animate Ambulance → User ────────────────────────────
-  const animateAmbulanceToUser = (
-    startAmb: { id: string; lat: number; lng: number }
-  ) => {
-    const start = { lat: startAmb.lat, lng: startAmb.lng };
-    const end   = { lat: userLocation.lat, lng: userLocation.lng };
-    const steps = 40;
-    let step = 0;
+      setTimeout(() => {
+        setStage("picked");
 
-    if (ambulanceIntervalRef.current)
-      clearInterval(ambulanceIntervalRef.current);
-
-    ambulanceIntervalRef.current = setInterval(() => {
-      step++;
-      const p = step / steps;
-      setAmbulancePos({
-        lat: start.lat + (end.lat - start.lat) * p,
-        lng: start.lng + (end.lng - start.lng) * p,
-      });
-      setEta(Math.max(0, Math.round(8 * (1 - p))));
-
-      if (step >= steps) {
-        clearInterval(ambulanceIntervalRef.current!);
-        setStage("arrived");
-        setEta(0);
+        // ✅ Hand off the ambulance's ACTUAL last route position
+        // (not userLocation — OSRM may have snapped slightly to the road)
+        const last = route[route.length - 1] ?? [userLocation.lat, userLocation.lng];
 
         setTimeout(() => {
-          setStage("picked");
-          // ✅ pass CURRENT position explicitly (no stale state)
-          setTimeout(() => animateToHospital(end), 2000);
+          void startHospitalTrip({ lat: last[0], lng: last[1] });
         }, 2000);
-      }
-    }, 300);
+      }, 2000);
+    });
   };
 
-  // ── Animate Ambulance → Hospital ────────────────────────
-  const animateToHospital = (currentPos: { lat: number; lng: number }) => {
+  // ── Ambulance → Hospital (now async — fetches real road route) ──
+  const startHospitalTrip = async (currentPos: { lat: number; lng: number }) => {
     setStage("hospital");
 
     const hospitalDest = {
@@ -441,63 +490,45 @@ function EmergencyPageContent() {
 
     setAmbulanceDestination(hospitalDest);
 
-    // ✅ Fresh junctions ON the hospital route
-    const routeLen = getDistanceMeters(
-      currentPos.lat, currentPos.lng,
-      hospitalDest.lat, hospitalDest.lng
-    );
+    const route = await getRoadRoute(currentPos, hospitalDest);
+    setRoutePath(route);
+
+    const routeLen = getRouteLength(route);
     setGreenZone(Math.max(60, Math.min(250, routeLen * 0.10)));
     setYellowZone(Math.max(150, Math.min(600, routeLen * 0.30)));
-    setSignalStates(generateRouteSignals(currentPos, hospitalDest));
-
-    const start = { ...currentPos };
-    const end   = hospitalDest;
-    const steps = 40;
-    let step = 0;
+    setSignalStates(generateJunctionsOnRoute(route));
     setEta(6);
 
-    if (ambulanceIntervalRef.current)
-      clearInterval(ambulanceIntervalRef.current);
+    animateAlongRoute(route, 6, () => {
+      setTimeout(() => {
+        alert(
+          `✅ Emergency Completed!\n\n` +
+          `Patient safely delivered to ` +
+          `${selectedHospital.name}\n\n` +
+          `Driver: ${ASSIGNED_AMBULANCE.driver.name}\n` +
+          `Vehicle: ${ASSIGNED_AMBULANCE.vehicle.number}\n\n` +
+          `Thank you for using Pravaah 360!`
+        );
 
-    ambulanceIntervalRef.current = setInterval(() => {
-      step++;
-      const p = step / steps;
-      setAmbulancePos({
-        lat: start.lat + (end.lat - start.lat) * p,
-        lng: start.lng + (end.lng - start.lng) * p,
-      });
-      setEta(Math.max(0, Math.round(6 * (1 - p))));
+        setSosActive(false);
+        setStage("idle");
+        setShowResponderAmbulance(false);
+        setAssignedAmbulanceId(null);
+        setSignalJump(false);
 
-      if (step >= steps) {
-        clearInterval(ambulanceIntervalRef.current!);
+        // ✅ Clear the route line
+        setRoutePath([]);
 
-        setTimeout(() => {
-          alert(
-            `✅ Emergency Completed!\n\n` +
-            `Patient safely delivered to ` +
-            `${selectedHospital.name}\n\n` +
-            `Driver: ${ASSIGNED_AMBULANCE.driver.name}\n` +
-            `Vehicle: ${ASSIGNED_AMBULANCE.vehicle.number}\n\n` +
-            `Thank you for using Pravaah 360!`
-          );
+        // ✅ Restore CURRENT CITY's idle signals
+        setSignalStates(getSignalsForCity(currentCity));
+        setGreenZone(250);
+        setYellowZone(600);
 
-          setSosActive(false);
-          setStage("idle");
-          setShowResponderAmbulance(false);
-          setAssignedAmbulanceId(null);
-          setSignalJump(false);
+        signalTimeoutsRef.current.forEach(clearTimeout);
+        signalTimeoutsRef.current = [];
 
-          // ✅ Restore CURRENT CITY's idle signals
-          setSignalStates(getSignalsForCity(currentCity));
-          setGreenZone(250);
-          setYellowZone(600);
-
-          signalTimeoutsRef.current.forEach(clearTimeout);
-          signalTimeoutsRef.current = [];
-
-        }, 1000);
-      }
-    }, 300);
+      }, 1000);
+    });
   };
 
   const handleBackToLogin = () => {
@@ -938,6 +969,16 @@ function EmergencyPageContent() {
             emergencies={[]}
             center={[userLocation.lat, userLocation.lng]}
             zoom={13}
+            polylines={
+              routePath.length > 1
+                ? [{
+                    id: "sos-route",
+                    positions: routePath.map(([lat, lng]) => ({ lat, lng })),
+                    color: "#3b82f6",
+                    weight: 5,
+                  }]
+                : []
+            }
           />
 
           {sosActive && (
