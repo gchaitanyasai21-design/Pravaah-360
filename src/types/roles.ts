@@ -1,19 +1,18 @@
-// PRAVAH + LifeLane - Role Types and Access Control
-// User vs Admin separation with proper permissions
+// PRAVAH 360 - Role Types and Access Control
 
 export type UserRole = 
-  | 'admin'           // Full system control
-  | 'dispatcher'      // Emergency dispatch control
-  | 'traffic_control' // Traffic junction management
-  | 'driver'          // Service provider (ambulance, parcel, transport)
-  | 'patient'         // Medical emergency user
-  | 'parcel_user'     // Parcel delivery user
-  | 'women_safety'    // Women safety user
-  | 'child_user'      // Child tracking user
-  | 'parent_user'     // Parental monitoring user
-  | 'elderly_user'    // Elderly care user
-  | 'fleet_manager'   // Fleet vehicle management
-  | 'ai_analyst';     // AI predictions and analytics
+  | 'admin'
+  | 'dispatcher'
+  | 'traffic_control'
+  | 'driver'
+  | 'patient'
+  | 'flood_response'
+  | 'women_safety'
+  | 'child_user'
+  | 'parent_user'
+  | 'elderly_user'
+  | 'fleet_manager'
+  | 'ai_analyst';
 
 export interface UserPermissions {
   canViewTrafficControl: boolean;
@@ -95,17 +94,17 @@ export const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
     canCreateEmergency: true,
     canCreateServiceRequest: false,
   },
-  parcel_user: {
+  flood_response: {
     canViewTrafficControl: false,
     canViewDispatch: false,
     canViewAllAmbulances: false,
     canControlJunctions: false,
     canAssignEmergencies: false,
     canViewAllUsers: false,
-    canAccessAnalytics: false,
+    canAccessAnalytics: true,
     canManageFleet: false,
     canTrackLocation: true,
-    canCreateEmergency: false,
+    canCreateEmergency: true,
     canCreateServiceRequest: true,
   },
   women_safety: {
@@ -193,12 +192,12 @@ export interface UserProfile {
   email: string;
   name: string;
   role: UserRole;
-  isAbove18?: boolean; // For child users
-  parentName?: string; // For child users
-  parentPhone?: string; // For child users
-  bloodGroup?: string; // For child users
-  emergencyContacts?: string[]; // For women safety, elderly care
-  trackingShareCode?: string; // For location sharing
+  isAbove18?: boolean;
+  parentName?: string;
+  parentPhone?: string;
+  bloodGroup?: string;
+  emergencyContacts?: string[];
+  trackingShareCode?: string;
   createdAt: Date;
   lastActive: Date;
 }

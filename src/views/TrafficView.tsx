@@ -267,10 +267,10 @@ export default function TrafficView() {
           <LiveMap
             junctions={junctions}
             ambulances={ambulances}
-            deliveryVehicles={[
-              { id: "DEL-001", lat: 28.6070, lng: 77.2120, status: "In Transit" },
-              { id: "DEL-002", lat: 28.6170, lng: 77.1980, status: "Delivered" },
-              { id: "DEL-003", lat: 28.6230, lng: 77.2080, status: "In Transit" }
+            responseVehicles={[
+              { id: "RES-001", lat: 28.6070, lng: 77.2120, status: "Responding" },
+              { id: "RES-002", lat: 28.6170, lng: 77.1980, status: "On Scene" },
+              { id: "RES-003", lat: 28.6230, lng: 77.2080, status: "Responding" }
             ]}
             sosVehicles={[
               { id: "POL-001", lat: 28.6150, lng: 77.2050, type: "police" },

@@ -1,0 +1,20 @@
+[33m3834f19[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/admin-system[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/feature/women-safety[m[33m, [m[1;31morigin/feature/safety-modules[m[33m, [m[1;31morigin/feature/emergency-module[m[33m, [m[1;31morigin/feature/admin-system[m[33m, [m[1;31morigin/develop[m[33m, [m[1;32mmain[m[33m, [m[1;32mdevelop[m[33m)[m Fix critical bug: Location symbols disappearing after initial load
+[33mf979aed[m Add location symbols to TrafficView and DispatchView
+[33m1cff795[m Fix all missing location symbols and enhance emergency completion
+[33m9d3727a[m Fix TypeScript error in WomenSafetyView.tsx
+[33mddd3ea9[m Fix TypeScript error in ElderlyView.tsx
+[33mec9ce6c[m Fix syntax error in ParentalView.tsx
+[33m9fddf53[m Complete all requested enhancements across all service pages
+[33mb2e2e8e[m Add complete SOS simulation with hospital markers and spread vehicles
+[33mc9e75cc[m Add live markers for user location, traffic signals, ambulances, and delivery vehicles
+[33md5f39b9[m Update all maps to use full interactive LiveMap component
+[33m34863ee[m Make all quick actions functional across all service pages
+[33m1ce0c64[m Fix critical emergency services login and 404 errors
+[33me7feba5[m Complete project save with comprehensive documentation
+[33m9eb2443[m fix: leaflet dynamic import, supabase setup, and build fixes
+[33m2c13cee[m Convert to permanent URL routing and fix emergency service login
+[33m041d49a[m Merge branch 'main' of https://github.com/gchaitanyasai21-design/Pravaah-360
+[33md5e8457[m Initial commit
+[33m4605361[m Complete PRAVAH + LifeLane multi-service platform implementation
+[33mfe52873[m Added configuration files and gitignore for complete project setup
+[33m58a2a35[m Added modern login page with multi-service selection and chromatic design

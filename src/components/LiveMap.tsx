@@ -5,8 +5,8 @@ import dynamic from "next/dynamic";
 const LiveMapInner = dynamic(() => import("./LiveMapInner"), { 
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-      <p className="text-gray-500">Loading map...</p>
+    <div className="flex h-full min-h-[360px] w-full items-center justify-center bg-[#131826]">
+      <p className="text-sm font-medium text-slate-400">Loading live map...</p>
     </div>
   )
 });
@@ -16,7 +16,7 @@ interface LiveMapProps {
   ambulances?: any[];
   emergencies?: any[];
   hospitals?: any[];
-  deliveryVehicles?: any[];
+  responseVehicles?: any[];
   trafficSignals?: any[];
   sosVehicles?: any[];
   userLocation?: { lat: number; lng: number };
@@ -26,6 +26,10 @@ interface LiveMapProps {
   showControls?: boolean;
   simulationActive?: boolean;
   onSimulationUpdate?: (data: any) => void;
+  geofence?: { center: [number, number]; radius: number };
+  parentLocation?: { lat: number; lng: number };
+  childLocation?: { lat: number; lng: number };
+  helpPoints?: any[];
 }
 
 export default function LiveMap(props: LiveMapProps) {

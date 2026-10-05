@@ -1,305 +1,181 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useMemo } from "react";
+import dynamic from "next/dynamic";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+const MapContainer = dynamic(() => import("react-leaflet").then((m) => m.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import("react-leaflet").then((m) => m.TileLayer), { ssr: false });
+const Marker = dynamic(() => import("react-leaflet").then((m) => m.Marker), { ssr: false });
+const Popup = dynamic(() => import("react-leaflet").then((m) => m.Popup), { ssr: false });
+const Circle = dynamic(() => import("react-leaflet").then((m) => m.Circle), { ssr: false });
+
+type Point = {
+  id?: string;
+  name?: string;
+  lat: number;
+  lng: number;
+  status?: string;
+  type?: string;
+};
 
 interface LiveMapProps {
-  junctions?: any[];
-  ambulances?: any[];
-  emergencies?: any[];
-  deliveryVehicles?: any[];
-  trafficSignals?: any[];
-  sosVehicles?: any[];
-  hospitals?: any[];
+  junctions?: Point[];
+  ambulances?: Point[];
+  emergencies?: Point[];
+  responseVehicles?: Point[];
+  trafficSignals?: Point[];
+  sosVehicles?: Point[];
+  hospitals?: Point[];
+  helpPoints?: Point[];
   userLocation?: { lat: number; lng: number };
+  parentLocation?: { lat: number; lng: number };
+  childLocation?: { lat: number; lng: number };
   showUserLocation?: boolean;
   center?: [number, number];
   zoom?: number;
-  simulationActive?: boolean;
-  onSimulationUpdate?: (data: any) => void;
+  geofence?: { center: [number, number]; radius: number };
+}
+
+const palette = {
+  red: { bg: "#ef4444", ring: "rgba(239,68,68,.22)", text: "#fff", glow: "rgba(239,68,68,.55)" },
+  orange: { bg: "#f97316", ring: "rgba(249,115,22,.22)", text: "#fff", glow: "rgba(249,115,22,.55)" },
+  blue: { bg: "#3b82f6", ring: "rgba(59,130,246,.22)", text: "#fff", glow: "rgba(59,130,246,.55)" },
+  green: { bg: "#22c55e", ring: "rgba(34,197,94,.22)", text: "#062513", glow: "rgba(34,197,94,.55)" },
+} as const;
+
+function badgeIcon(color: keyof typeof palette, label: string, size = 42) {
+  const p = palette[color];
+  return L.divIcon({
+    className: "custom-icon",
+    html: `<div style="width:${size}px;height:${size}px;border-radius:999px;background:${p.ring};border:2px solid ${p.bg};display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px ${p.glow};">
+      <div style="min-width:${Math.max(24, size - 12)}px;height:${Math.max(24, size - 12)}px;border-radius:999px;background:${p.bg};color:${p.text};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;letter-spacing:.02em;border:2px solid rgba(255,255,255,.82);">${label}</div>
+    </div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
+}
+
+function pulseIcon(color: keyof typeof palette, label = "", size = 30) {
+  const p = palette[color];
+  return L.divIcon({
+    className: "custom-icon",
+    html: `<div style="position:relative;width:${size}px;height:${size}px;border-radius:999px;background:${p.ring};border:2px solid ${p.bg};display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px ${p.glow};">
+      <span style="position:absolute;width:100%;height:100%;border-radius:999px;background:${p.bg};opacity:.34;animation:pulse 1.4s infinite;"></span>
+      <div style="position:relative;width:${size - 14}px;height:${size - 14}px;border-radius:999px;background:${p.bg};color:${p.text};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;">${label}</div>
+    </div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
+}
+
+function signalIcon(status = "red") {
+  const normalized = status.toLowerCase();
+  return pulseIcon(normalized.includes("green") || normalized.includes("normal") ? "green" : "red", "", 22);
 }
 
 export default function LiveMapInner({
   junctions = [],
   ambulances = [],
   emergencies = [],
-  deliveryVehicles = [],
+  responseVehicles = [],
   trafficSignals = [],
   sosVehicles = [],
   hospitals = [],
+  helpPoints = [],
   userLocation,
+  parentLocation,
+  childLocation,
   showUserLocation = false,
-  center = [28.6139, 77.2090],
-  zoom = 12,
-  simulationActive = false,
-  onSimulationUpdate,
+  center = [16.5062, 80.648],
+  zoom = 13,
+  geofence,
 }: LiveMapProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-
-  useEffect(() => {
-    const initMap = async () => {
-      if (!mapRef.current) return;
-      if (mapInstanceRef.current) return;
-
-      const L = (await import("leaflet")).default;
-      await import("leaflet/dist/leaflet.css");
-
-      // Create map
-      const map = L.map(mapRef.current).setView(center, zoom);
-      mapInstanceRef.current = map;
-
-      // Add tile layer
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: " OpenStreetMap contributors",
-      }).addTo(map);
-
-      // Create custom icons
-      const ambulanceIcon = L.divIcon({
-        html: '<div style="background: #ff4444; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🚑</div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
-        popupAnchor: [0, -15],
-        className: 'custom-marker'
-      });
-
-      const policeIcon = L.divIcon({
-        html: '<div style="background: #4444ff; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🚓</div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
-        popupAnchor: [0, -15],
-        className: 'custom-marker'
-      });
-
-      const deliveryIcon = L.divIcon({
-        html: '<div style="background: #ffaa00; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">📦</div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
-        popupAnchor: [0, -15],
-        className: 'custom-marker'
-      });
-
-      const userIcon = L.divIcon({
-        html: '<div style="background: #4CAF50; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">👤</div>',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-        popupAnchor: [0, -10],
-        className: 'custom-marker'
-      });
-
-      const trafficSignalIcon = L.divIcon({
-        html: '<div style="background: #333; color: white; border-radius: 4px; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #666; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🚦</div>',
-        iconSize: [25, 25],
-        iconAnchor: [12, 12],
-        popupAnchor: [0, -12],
-        className: 'custom-marker'
-      });
-
-      const hospitalIcon = L.divIcon({
-        html: '<div style="background: #e91e63; color: white; border-radius: 8px; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">🏥</div>',
-        iconSize: [35, 35],
-        iconAnchor: [17, 17],
-        popupAnchor: [0, -17],
-        className: 'custom-marker'
-      });
-
-      // Add user location marker
-      if (showUserLocation && userLocation) {
-        L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
-          .bindPopup("👤 Your Location")
-          .addTo(map);
-      }
-
-      // Add SOS vehicles (ambulances and police)
-      sosVehicles?.forEach((vehicle) => {
-        if (vehicle.lat && vehicle.lng) {
-          const icon = vehicle.type === 'police' ? policeIcon : ambulanceIcon;
-          L.marker([vehicle.lat, vehicle.lng], { icon })
-            .bindPopup(`${vehicle.type === 'police' ? '🚓' : '🚑'} ${vehicle.id || "SOS Vehicle"}`)
-            .addTo(map);
-        }
-      });
-
-      // Add ambulance markers
-      ambulances.forEach((ambulance) => {
-        if (ambulance.lat && ambulance.lng) {
-          L.marker([ambulance.lat, ambulance.lng], { icon: ambulanceIcon })
-            .bindPopup(`🚑 ${ambulance.id || "Ambulance"} - ${ambulance.status || "Available"}`)
-            .addTo(map);
-        }
-      });
-
-      // Add delivery vehicle markers
-      deliveryVehicles?.forEach((vehicle) => {
-        if (vehicle.lat && vehicle.lng) {
-          L.marker([vehicle.lat, vehicle.lng], { icon: deliveryIcon })
-            .bindPopup(`📦 ${vehicle.id || "Delivery"} - ${vehicle.status || "In Transit"}`)
-            .addTo(map);
-        }
-      });
-
-      // Add traffic signal markers
-      trafficSignals?.forEach((signal) => {
-        if (signal.lat && signal.lng) {
-          L.marker([signal.lat, signal.lng], { icon: trafficSignalIcon })
-            .bindPopup(`🚦 ${signal.name || "Traffic Signal"} - ${signal.status || "Normal"}`)
-            .addTo(map);
-        }
-      });
-
-      // Add hospital markers
-      hospitals?.forEach((hospital) => {
-        if (hospital.lat && hospital.lng) {
-          L.marker([hospital.lat, hospital.lng], { icon: hospitalIcon })
-            .bindPopup(`🏥 ${hospital.name || "Hospital"} - ${hospital.status || "Available"}`)
-            .addTo(map);
-        }
-      });
-
-      // Add junction markers
-      junctions.forEach((junction) => {
-        if (junction.lat && junction.lng) {
-          L.marker([junction.lat, junction.lng])
-            .bindPopup(`🚦 ${junction.name || "Junction"}`)
-            .addTo(map);
-        }
-      });
-    };
-
-    initMap();
-
-    // Cleanup on unmount
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, []);
-
-  // Effect to handle real-time marker updates
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
-
-    const updateMarkers = async () => {
-      const L = (await import("leaflet")).default;
-      
-      // Clear existing custom markers
-      mapInstanceRef.current.eachLayer((layer: any) => {
-        if (layer.options.icon && layer.options.icon.options.className === 'custom-marker') {
-          mapInstanceRef.current.removeLayer(layer);
-        }
-      });
-
-      // Recreate all icons
-      const ambulanceIcon = L.divIcon({
-        html: '<div style="background: #ff4444; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🚑</div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
-        popupAnchor: [0, -15],
-        className: 'custom-marker'
-      });
-
-      const policeIcon = L.divIcon({
-        html: '<div style="background: #4444ff; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🚓</div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
-        popupAnchor: [0, -15],
-        className: 'custom-marker'
-      });
-
-      const deliveryIcon = L.divIcon({
-        html: '<div style="background: #ffaa00; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">📦</div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
-        popupAnchor: [0, -15],
-        className: 'custom-marker'
-      });
-
-      const userIcon = L.divIcon({
-        html: '<div style="background: #4CAF50; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">👤</div>',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-        popupAnchor: [0, -10],
-        className: 'custom-marker'
-      });
-
-      const trafficSignalIcon = L.divIcon({
-        html: '<div style="background: #333; color: white; border-radius: 4px; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #666; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🚦</div>',
-        iconSize: [25, 25],
-        iconAnchor: [12, 12],
-        popupAnchor: [0, -12],
-        className: 'custom-marker'
-      });
-
-      const hospitalIcon = L.divIcon({
-        html: '<div style="background: #e91e63; color: white; border-radius: 8px; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">🏥</div>',
-        iconSize: [35, 35],
-        iconAnchor: [17, 17],
-        popupAnchor: [0, -17],
-        className: 'custom-marker'
-      });
-
-      // Add user location marker
-      if (showUserLocation && userLocation) {
-        L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
-          .bindPopup("👤 Your Location")
-          .addTo(mapInstanceRef.current);
-      }
-
-      // Add SOS vehicles (ambulances and police)
-      sosVehicles?.forEach((vehicle) => {
-        if (vehicle.lat && vehicle.lng) {
-          const icon = vehicle.type === 'police' ? policeIcon : ambulanceIcon;
-          L.marker([vehicle.lat, vehicle.lng], { icon })
-            .bindPopup(`${vehicle.type === 'police' ? '🚓' : '🚑'} ${vehicle.id || "SOS Vehicle"}`)
-            .addTo(mapInstanceRef.current);
-        }
-      });
-
-      // Add ambulance markers
-      ambulances.forEach((ambulance) => {
-        if (ambulance.lat && ambulance.lng) {
-          L.marker([ambulance.lat, ambulance.lng], { icon: ambulanceIcon })
-            .bindPopup(`🚑 ${ambulance.id || "Ambulance"} - ${ambulance.status || "Available"}`)
-            .addTo(mapInstanceRef.current);
-        }
-      });
-
-      // Add delivery vehicle markers
-      deliveryVehicles?.forEach((vehicle) => {
-        if (vehicle.lat && vehicle.lng) {
-          L.marker([vehicle.lat, vehicle.lng], { icon: deliveryIcon })
-            .bindPopup(`📦 ${vehicle.id || "Delivery"} - ${vehicle.status || "In Transit"}`)
-            .addTo(mapInstanceRef.current);
-        }
-      });
-
-      // Add traffic signal markers
-      trafficSignals?.forEach((signal) => {
-        if (signal.lat && signal.lng) {
-          L.marker([signal.lat, signal.lng], { icon: trafficSignalIcon })
-            .bindPopup(`🚦 ${signal.name || "Traffic Signal"} - ${signal.status || "Normal"}`)
-            .addTo(mapInstanceRef.current);
-        }
-      });
-
-      // Add hospital markers
-      hospitals?.forEach((hospital) => {
-        if (hospital.lat && hospital.lng) {
-          L.marker([hospital.lat, hospital.lng], { icon: hospitalIcon })
-            .bindPopup(`🏥 ${hospital.name || "Hospital"} - ${hospital.status || "Available"}`)
-            .addTo(mapInstanceRef.current);
-        }
-      });
-    };
-
-    updateMarkers();
-  }, [ambulances, sosVehicles, deliveryVehicles, trafficSignals, hospitals, userLocation, showUserLocation]);
+  const icons = useMemo(
+    () => ({
+      ambulance: badgeIcon("orange", "AMB"),
+      response: badgeIcon("red", "SOS"),
+      hospital: badgeIcon("blue", "H"),
+      sos: badgeIcon("red", "SOS", 46),
+      user: pulseIcon("green", ""),
+      parent: badgeIcon("blue", "P", 40),
+      child: badgeIcon("green", "C", 40),
+      help: badgeIcon("red", "+", 24),
+    }),
+    []
+  );
 
   return (
-    <div
-      ref={mapRef}
-      style={{ height: "100%", width: "100%", minHeight: "400px" }}
-    />
+    <MapContainer center={center} zoom={zoom} scrollWheelZoom className="h-full min-h-[360px] w-full bg-[#131826]">
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+
+      {geofence && (
+        <Circle
+          center={geofence.center}
+          radius={geofence.radius}
+          pathOptions={{ color: "#22c55e", fillColor: "#22c55e", fillOpacity: 0.2, weight: 2 }}
+        />
+      )}
+
+      {showUserLocation && userLocation && (
+        <Marker position={[userLocation.lat, userLocation.lng]} icon={icons.user}>
+          <Popup>User location</Popup>
+        </Marker>
+      )}
+
+      {parentLocation && (
+        <Marker position={[parentLocation.lat, parentLocation.lng]} icon={icons.parent}>
+          <Popup>Parent location</Popup>
+        </Marker>
+      )}
+
+      {childLocation && (
+        <Marker position={[childLocation.lat, childLocation.lng]} icon={icons.child}>
+          <Popup>Child location</Popup>
+        </Marker>
+      )}
+
+      {ambulances.map((item) => (
+        <Marker key={`amb-${item.id ?? item.lat}`} position={[item.lat, item.lng]} icon={icons.ambulance}>
+          <Popup>{item.id ?? "Ambulance"} - {item.status ?? "Available"}</Popup>
+        </Marker>
+      ))}
+
+      {[...emergencies, ...sosVehicles].map((item) => (
+        <Marker key={`sos-${item.id ?? item.lat}`} position={[item.lat, item.lng]} icon={icons.sos}>
+          <Popup>{item.name ?? item.id ?? "Active SOS"} - {item.status ?? "Active"}</Popup>
+        </Marker>
+      ))}
+
+      {responseVehicles.map((item) => (
+        <Marker key={`response-${item.id ?? item.lat}`} position={[item.lat, item.lng]} icon={icons.response}>
+          <Popup>{item.id ?? "Response unit"} - {item.status ?? "Responding"}</Popup>
+        </Marker>
+      ))}
+
+      {hospitals.map((item) => (
+        <Marker key={`hospital-${item.id ?? item.lat}`} position={[item.lat, item.lng]} icon={icons.hospital}>
+          <Popup>{item.name ?? "Hospital"} - {item.status ?? "Available"}</Popup>
+        </Marker>
+      ))}
+
+      {trafficSignals.map((item) => (
+        <Marker key={`signal-${item.id ?? item.lat}`} position={[item.lat, item.lng]} icon={signalIcon(item.status)}>
+          <Popup>{item.name ?? "Traffic Signal"} - {item.status ?? "Red"}</Popup>
+        </Marker>
+      ))}
+
+      {[...junctions, ...helpPoints].map((item) => (
+        <Marker key={`help-${item.id ?? item.lat}`} position={[item.lat, item.lng]} icon={icons.help}>
+          <Popup>{item.name ?? "Help point"}</Popup>
+        </Marker>
+      ))}
+    </MapContainer>
   );
 }

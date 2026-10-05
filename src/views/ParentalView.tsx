@@ -122,25 +122,23 @@ export default function ParentalView() {
     const interval = setInterval(loadChildData, 5000);
     return () => clearInterval(interval);
   }, []);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-
-  // Load alerts from child safety data
-  useEffect(() => {
+  const [alerts] = useState<Alert[]>(() => {
+    if (typeof window === "undefined") return [];
     const childEmergency = localStorage.getItem('childEmergency');
     const childName = localStorage.getItem('childName');
     
     if (childEmergency && childName) {
       const emergency = JSON.parse(childEmergency);
-      const newAlert: Alert = {
+      return [{
         id: "emergency-alert",
         childId: "child-saved",
         type: 'emergency',
         message: `${childName} triggered emergency SOS!`,
         timestamp: new Date(emergency.timestamp),
-      };
-      setAlerts([newAlert]);
+      }];
     }
-  }, []);
+    return [];
+  });
   const [selectedChild, setSelectedChild] = useState<ChildProfile | null>(null);
   const [showAddChild, setShowAddChild] = useState(false);
   const [trackingCode, setTrackingCode] = useState("");

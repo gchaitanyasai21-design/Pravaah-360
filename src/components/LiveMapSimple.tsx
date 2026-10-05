@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 
 interface LiveMapProps {
   ambulances?: any[];
@@ -24,10 +24,7 @@ export default function LiveMap({
   zoom = 12,
   showControls = false,
 }: LiveMapProps) {
-  const [mapUrl, setMapUrl] = useState("");
-
-  // Generate OpenStreetMap URL
-  useEffect(() => {
+  const mapUrl = useMemo(() => {
     const markers: string[] = [];
     
     // Add markers for each item
@@ -52,7 +49,7 @@ export default function LiveMap({
       markers: markers.join("|")
     });
 
-    setMapUrl(`${baseUrl}?${params.toString()}`);
+    return `${baseUrl}?${params.toString()}`;
   }, [ambulances, emergencies, hospitals, junctions, center, zoom]);
 
   return (

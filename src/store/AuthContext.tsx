@@ -1,9 +1,11 @@
-// PRAVAH + LifeLane - Authentication Context
-// Simple demo authentication - accepts any credentials
+// PRAVAH 360 - Authentication Context
+// Multi-Service Smart City Platform
 
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+// Assuming types are exported from "@/types" or "@/types/roles"
+// UserRole covers every citizen-facing module including flood_response
 import type { UserRole, UserPermissions, UserProfile } from "@/types/roles";
 
 interface AuthState {
@@ -37,14 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // For demo purposes - accept any email/password combination
-      // In production, this would validate against real database
+      // Format role name for display (e.g. "flood_response" -> "Flood Response User")
+      const formattedRoleName = role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       
       // Create user profile
       const userProfile: UserProfile = {
         id: `user-${role}-${Date.now()}`,
         email,
-        name: `${role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')} User`,
+        name: `${formattedRoleName} User`,
         role,
         createdAt: new Date(),
         lastActive: new Date(),
@@ -72,9 +74,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userProfile.emergencyContacts = ["+91-9999999999"];
       }
 
+      // Grant permissions based on role
+      // For demo, we grant all, but you can restrict flood_response later if needed
       setState({
         user: userProfile,
-        permissions: { canViewTrafficControl: true, canViewDispatch: true, canViewAllAmbulances: true, canControlJunctions: true, canAssignEmergencies: true, canViewAllUsers: true, canAccessAnalytics: true, canManageFleet: true, canTrackLocation: true, canCreateEmergency: true, canCreateServiceRequest: true }, // Full permissions for demo
+        permissions: { 
+          canViewTrafficControl: true, 
+          canViewDispatch: true, 
+          canViewAllAmbulances: true, 
+          canControlJunctions: true, 
+          canAssignEmergencies: true, 
+          canViewAllUsers: true, 
+          canAccessAnalytics: true, 
+          canManageFleet: true, 
+          canTrackLocation: true, 
+          canCreateEmergency: true, 
+          canCreateServiceRequest: true 
+        }, 
         isAuthenticated: true,
         isLoading: false,
       });

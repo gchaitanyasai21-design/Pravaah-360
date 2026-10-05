@@ -1,407 +1,272 @@
-// PRAVAH + LifeLane - Modern Login Page
-// Multi-Service Smart City Platform
+// PRAVAH 360 - Login / Role Picker Page (Card Grid UI)
 
 "use client";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { User, Lock, Mail, ArrowRight, Shield, Truck, Heart, MapPin, Brain, Users, AlertTriangle, Phone, Eye, EyeOff, ChevronRight } from "lucide-react";
-import LiveMap from "@/components/LiveMap";
+import React from "react";
 import Link from "next/link";
-import { useAuth } from "@/store/AuthContext";
+import { useRouter } from "next/navigation";
+import { 
+  Siren, Shield, Baby, UserCheck, Heart, CloudRain, Truck, BarChart3, 
+  ArrowLeft, Lock, CheckCircle2, Zap, Phone, Sparkles, ArrowRight 
+} from "lucide-react";
 
 export default function LoginPage() {
-  const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [selectedService, setSelectedService] = useState("emergency");
-  const [isAbove18, setIsAbove18] = useState(false);
-  const [childName, setChildName] = useState("");
-  const [parentName, setParentName] = useState("");
-  const [parentPhone, setParentPhone] = useState("");
-  const [bloodGroup, setBloodGroup] = useState("");
-  const [showAdditionalFields, setShowAdditionalFields] = useState(false);
-
-  const services = [
+  const router = useRouter();
+  const roles = [
     {
-      id: "emergency",
-      name: "Emergency Services",
-      icon: Shield,
-      color: "from-red-500 to-pink-500",
-      description: "Medical emergency assistance",
-      role: "patient" as const
-    },
-    {
-      id: "parcel",
-      name: "Parcel Delivery",
-      icon: Truck,
-      color: "from-blue-500 to-cyan-500",
-      description: "Send & receive packages",
-      role: "parcel_user" as const
+      id: "patient",
+      title: "Patient",
+      subtitle: "Emergency medical services",
+      icon: Siren,
+      color: "bg-orange-500",
+      btnGradient: "from-orange-500 to-amber-500",
+      bullets: ["SOS alerts", "Nearby hospitals", "Ambulance tracking"],
+      email: "patient@pravaah360.in",
+      password: "patient123",
+      btnText: "Continue as Patient",
     },
     {
       id: "womensafety",
-      name: "Women Safety",
+      title: "Women Safety",
+      subtitle: "Personal safety companion",
       icon: Shield,
-      color: "from-pink-500 to-rose-500",
-      description: "Personal safety & location tracking",
-      role: "women_safety" as const
-    },
-    {
-      id: "child",
-      name: "Child Safety",
-      icon: MapPin,
-      color: "from-purple-500 to-indigo-500",
-      description: "Child monitoring & safety",
-      role: "child_user" as const,
-      requiresAgeVerification: true
+      color: "bg-pink-500",
+      btnGradient: "from-pink-500 to-rose-500",
+      bullets: ["SOS button", "Safe walk", "Live location"],
+      email: "women@pravaah360.in",
+      password: "women123",
+      btnText: "Continue as Women Safety",
     },
     {
       id: "parent",
-      name: "Parental Monitoring",
-      icon: MapPin,
-      color: "from-indigo-500 to-purple-500",
-      description: "Track your children's location",
-      role: "parent_user" as const
+      title: "Parent",
+      subtitle: "Monitor your children",
+      icon: UserCheck,
+      color: "bg-blue-500",
+      btnGradient: "from-blue-500 to-cyan-500",
+      bullets: ["Live tracking", "Screen time", "Geo-fences"],
+      email: "parent@pravaah360.in",
+      password: "parent123",
+      btnText: "Continue as Parent",
+    },
+    {
+      id: "child",
+      title: "Child",
+      subtitle: "Kid-friendly safety app",
+      icon: Baby,
+      color: "bg-purple-500",
+      btnGradient: "from-purple-500 to-indigo-500",
+      bullets: ["SOS button", "Safe zones", "Parent contact"],
+      email: "child@pravaah360.in",
+      password: "child123",
+      btnText: "Continue as Child",
     },
     {
       id: "eldercare",
-      name: "Elderly Care",
+      title: "Elder Care",
+      subtitle: "Senior citizen support",
       icon: Heart,
-      color: "from-green-500 to-teal-500",
-      description: "Senior citizen monitoring",
-      role: "elderly_user" as const
+      color: "bg-emerald-500",
+      btnGradient: "from-emerald-500 to-teal-500",
+      bullets: ["Reminders", "Emergency help", "Family alerts"],
+      email: "elder@pravaah360.in",
+      password: "elder123",
+      btnText: "Continue as Elder Care",
     },
     {
+      /* SWAPPED PARCEL USER FOR FLOOD RESPONSE */
+      id: "flood",
+      title: "Flood Response",
+      subtitle: "Urban flood intelligence",
+      icon: CloudRain,
+      color: "bg-cyan-500",
+      btnGradient: "from-cyan-500 to-blue-600",
+      bullets: ["Live flood map", "Safe routing", "Rescue alerts"],
+      email: "flood@pravaah360.in",
+      password: "flood123",
+      btnText: "Continue as Flood Response",
+      isFlood: true,
+    },
+    {
+      /* UNTOUCHED SERVICE PROVIDER */
       id: "driver",
-      name: "Service Provider",
+      title: "Service Provider",
+      subtitle: "Delivery & services",
       icon: Truck,
-      color: "from-orange-500 to-amber-500",
-      description: "Driver & delivery partner",
-      role: "driver" as const
+      color: "bg-orange-500",
+      btnGradient: "from-orange-500 to-amber-500",
+      bullets: ["Manage orders", "Track earnings", "Rating system"],
+      email: "driver@pravaah360.in",
+      password: "driver123",
+      btnText: "Continue as Service Provider",
     },
     {
       id: "admin",
-      name: "System Admin",
-      icon: Shield,
-      color: "from-gray-500 to-slate-500",
-      description: "Full system control",
-      role: "admin" as const,
-      requiresAdmin: true
-    }
+      title: "System Admin",
+      subtitle: "Complete platform control",
+      icon: BarChart3,
+      color: "bg-blue-500",
+      btnGradient: "from-blue-500 to-indigo-500",
+      bullets: ["User management", "Analytics", "System settings"],
+      email: "admin@pravaah360.in",
+      password: "admin123",
+      btnText: "Continue as System Admin",
+    },
   ];
 
-  const handleServiceChange = (serviceId: string) => {
-    setSelectedService(serviceId);
-    const service = services.find(s => s.id === serviceId);
-    setShowAdditionalFields(service?.requiresAgeVerification || false);
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Store additional data for child users
-    if (showAdditionalFields) {
-      localStorage.setItem('childProfile', JSON.stringify({
-        isAbove18,
-        childName,
-        parentName,
-        parentPhone,
-        bloodGroup
-      }));
-    }
-    
-    // Map service ID to user role
-    const roleMap: Record<string, string> = {
-      'emergency': 'patient',
-      'admin': 'admin',
-      'driver': 'driver',
-      'dispatch': 'dispatch',
-      'traffic': 'traffic',
-      'child': 'child_user',
-      'parent': 'parent_user',
-      'eldercare': 'elderly_user',
-      'womensafety': 'women_safety',
-      'parcel': 'parcel_user'
+    const handleLogin = (roleId: string) => {
+    // Map role card IDs → real routes
+    const routeMap: Record<string, string> = {
+      patient: "/emergency",      // Patient card → Emergency dashboard
+      flood: "/flood",
+      womensafety: "/womensafety",
+      parent: "/parent",
+      child: "/child",
+      eldercare: "/eldercare",
+      driver: "/driver",
+      admin: "/admin",
     };
-    
-    const userRole = roleMap[selectedService] || 'patient';
-    
-    try {
-      // Use AuthContext login
-      const loginSuccess = await login(email, password, userRole as any);
-      
-      if (loginSuccess) {
-        // Store login info
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('selectedService', selectedService);
-        
-        // Redirect to service-specific page
-        window.location.href = `/${selectedService}`;
-      } else {
-        // Show error message
-        alert('Login failed. Please check your credentials and try again.');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      alert('Login failed. Please try again.');
-    }
-  };
 
+    const path = routeMap[roleId] || `/${roleId}`;
+    router.push(path);
+  };
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="absolute inset-0 bg-black opacity-50"></div>
-      
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000"></div>
-        <div className="absolute bottom-20 left-1/2 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-4000"></div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans p-6">
+      {/* Top Header */}
+      <header className="max-w-7xl mx-auto w-full flex items-center justify-between mb-8">
+        <Link
+          href="/"
+          className="flex items-center gap-3 p-2 bg-slate-900 border border-white/10 rounded-2xl hover:bg-slate-800 transition-colors"
+        >
+          <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+            <ArrowLeft className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-white">Pravaah 360</div>
+            <div className="text-[10px] text-slate-400">Back to Home</div>
+          </div>
+        </Link>
+
+        <a
+          href="tel:108"
+          className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-bold"
+        >
+          <Phone className="w-4 h-4" />
+          <span>Emergency 108</span>
+        </a>
+      </header>
+
+      {/* Hero Heading */}
+      <div className="max-w-4xl mx-auto text-center mb-10">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-semibold mb-4">
+          <Sparkles className="w-4 h-4" />
+          <span>Choose Your Access</span>
+        </div>
+        <h1 className="text-4xl md:text-6xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-white bg-clip-text text-transparent mb-3">
+          Choose Your Role
+        </h1>
+        <p className="text-slate-400 text-sm md:text-base max-w-xl mx-auto">
+          Select how you want to use Pravaah 360. Click any card to instantly access your dashboard.
+        </p>
       </div>
 
-      <div className="relative z-10 flex min-h-screen">
-        {/* Service Selection */}
-        <div className="flex-1 flex items-center justify-center p-8 relative">
-          {/* Background Map */}
-          <div className="absolute inset-0 opacity-10">
-            <LiveMap
-              ambulances={[]}
-              emergencies={[]}
-              center={[28.6139, 77.2090]}
-              zoom={10}
-            />
-          </div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md relative z-10"
+      {/* 8 Role Cards Grid */}
+      <main className="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {roles.map((role) => (
+          <div
+            key={role.id}
+            className={`bg-slate-900/80 border ${
+              role.isFlood ? "border-cyan-500/50 shadow-lg shadow-cyan-500/10" : "border-white/10"
+            } rounded-3xl p-6 flex flex-col justify-between hover:border-white/30 transition-all`}
           >
-            <h1 className="text-4xl font-bold text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
-              PRAVAH + LifeLane
-            </h1>
-            <p className="text-gray-300 mb-8">
-              Multi-Service Smart City Platform
-            </p>
-
-            <div className="space-y-3 mb-8">
-              <h3 className="text-white font-semibold mb-4">Select Service</h3>
-              {services.map((service) => (
-                <motion.button
-                  key={service.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => handleServiceChange(service.id)}
-                  className={`w-full p-4 rounded-xl border-2 transition-all ${
-                    selectedService === service.id
-                      ? "border-white bg-white/10"
-                      : "border-white/20 hover:border-white/40 hover:bg-white/5"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${service.color} flex items-center justify-center`}>
-                      <service.icon className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <div className="text-white font-medium">{service.name}</div>
-                      <div className="text-gray-400 text-sm">{service.description}</div>
-                    </div>
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Login Form */}
-        <div className="w-1/2 p-8 flex items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="max-w-md w-full"
-          >
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/20">
-              <h2 className="text-2xl font-bold text-white mb-6">Sign In</h2>
-              
-              <form onSubmit={handleLogin} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
+            <div>
+              {/* Header row with Icon and Auto Badge */}
+              <div className="flex justify-between items-start mb-4">
+                <div className={`w-12 h-12 rounded-2xl ${role.color} flex items-center justify-center`}>
+                  <role.icon className="w-6 h-6 text-white" />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      placeholder="Enter your password"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Additional fields for child users */}
-                {showAdditionalFields && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="space-y-4 border-t border-white/20 pt-4"
-                  >
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Are you above 18 years old?
-                      </label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            checked={isAbove18}
-                            onChange={() => setIsAbove18(true)}
-                            className="mr-2"
-                          />
-                          <span className="text-white">Yes (18+)</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            checked={!isAbove18}
-                            onChange={() => setIsAbove18(false)}
-                            className="mr-2"
-                          />
-                          <span className="text-white">No (Below 18)</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Child Name
-                      </label>
-                      <input
-                        type="text"
-                        value={childName}
-                        onChange={(e) => setChildName(e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Enter child's name"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Parent/Guardian Name
-                      </label>
-                      <input
-                        type="text"
-                        value={parentName}
-                        onChange={(e) => setParentName(e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Enter parent's name"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Parent Phone Number
-                      </label>
-                      <input
-                        type="tel"
-                        value={parentPhone}
-                        onChange={(e) => setParentPhone(e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Enter parent's phone number"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Blood Group
-                      </label>
-                      <select
-                        value={bloodGroup}
-                        onChange={(e) => setBloodGroup(e.target.value)}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        required
-                      >
-                        <option value="" className="text-gray-800">Select blood group</option>
-                        <option value="A+" className="text-gray-800">A+</option>
-                        <option value="A-" className="text-gray-800">A-</option>
-                        <option value="B+" className="text-gray-800">B+</option>
-                        <option value="B-" className="text-gray-800">B-</option>
-                        <option value="AB+" className="text-gray-800">AB+</option>
-                        <option value="AB-" className="text-gray-800">AB-</option>
-                        <option value="O+" className="text-gray-800">O+</option>
-                        <option value="O-" className="text-gray-800">O-</option>
-                      </select>
-                    </div>
-                  </motion.div>
-                )}
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg shadow-lg hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    Sign In
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                </motion.button>
-              </form>
-
-              <div className="mt-6 text-center">
-                <p className="text-gray-400 text-sm mb-3">
-                  Or use direct access:
-                </p>
-                <div className="space-y-2 text-xs">
-                  <div className="text-purple-300">
-                    Women Safety: <span className="text-white">safety@parvah.com / safety123</span>
-                  </div>
-                  <div className="text-purple-300">
-                    Parental: <span className="text-white">parent@parvah.com / parent123</span>
-                  </div>
-                  <div className="text-purple-300">
-                    Elderly Care: <span className="text-white">elderly@parvah.com / elderly123</span>
-                  </div>
-                  <div className="text-purple-300">
-                    Parcel: <span className="text-white">user@parvah.com / user123</span>
-                  </div>
-                  <div className="text-purple-300">
-                    Emergency: <span className="text-white">patient@parvah.com / patient123</span>
-                  </div>
-                </div>
-                <div className="mt-3 pt-3 border-t border-gray-600">
-                  <p className="text-gray-400 text-sm">
-                    Or visit: <span className="text-purple-400">/womensafety</span>, <span className="text-purple-400">/parent</span>, <span className="text-purple-400">/eldercare</span>, <span className="text-purple-400">/parcel</span>, <span className="text-purple-400">/emergency</span>
-                  </p>
+                <div className="flex items-center gap-1 px-2.5 py-1 bg-white/5 border border-white/10 rounded-full text-[11px] text-slate-400">
+                  <Lock className="w-3 h-3" />
+                  <span>Auto</span>
                 </div>
               </div>
+
+              <h3 className="text-xl font-bold text-white mb-1">{role.title}</h3>
+              <p className="text-xs text-slate-400 mb-6">{role.subtitle}</p>
+
+              {/* 3 Bullets */}
+              <div className="space-y-2 mb-6">
+                {role.bullets.map((bullet, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-xs text-slate-300">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{bullet}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </motion.div>
+
+            {/* Credentials box + CTA Button */}
+            <div>
+              <div className="bg-slate-950/80 border border-white/5 rounded-2xl p-3 mb-4 font-mono text-xs text-slate-400">
+                <p>{role.email}</p>
+                <p className="text-slate-600">{role.password}</p>
+              </div>
+
+              <button
+                onClick={() => handleLogin(role.id)}
+                className={`w-full py-3 px-4 bg-gradient-to-r ${role.btnGradient} text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition-all hover:scale-[1.02] active:scale-98`}
+              >
+                <span>{role.btnText}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </main>
+
+      {/* 3 Bottom Cards */}
+      <footer className="max-w-7xl mx-auto w-full pt-6 border-t border-white/5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-slate-900/50 border border-white/5 p-6 rounded-2xl flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm">Instant Access</h4>
+              <p className="text-xs text-slate-400 mt-1">One click to access your role&apos;s dashboard</p>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/50 border border-white/5 p-6 rounded-2xl flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center shrink-0">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm">Secure Login</h4>
+              <p className="text-xs text-slate-400 mt-1">Encrypted authentication for all users</p>
+            </div>
+          </div>
+
+          <div className="bg-slate-900/50 border border-white/5 p-6 rounded-2xl flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm">Vijayawada Ready</h4>
+              <p className="text-xs text-slate-400 mt-1">Configured for Vijayawada, AP 520013</p>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <div className="flex gap-2">
+            <span className="px-3 py-1 bg-slate-900 rounded-full border border-white/5">108</span>
+            <span className="px-3 py-1 bg-slate-900 rounded-full border border-white/5">100</span>
+            <span className="px-3 py-1 bg-slate-900 rounded-full border border-white/5">101</span>
+          </div>
+          <div>© 2026 Pravaah 360 · Built for Vijayawada, Andhra Pradesh</div>
+        </div>
+      </footer>
     </div>
   );
 }
